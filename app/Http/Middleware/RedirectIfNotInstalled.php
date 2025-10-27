@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class RedirectIfNotInstalled
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        if (env('SYSTEM_INSTALLED') != "1") {
+            // Redirect to the installation route
+            return redirect()->route('install.index'); // Make sure this route exists in your application
+        }
+
+        return $next($request);
+    }
+}
