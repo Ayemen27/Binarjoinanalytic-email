@@ -1,0 +1,37 @@
+IMPORTANT
+——————————————————————————————————————
+**** Make sure you have the latest version before you start uploading files.
+**** Always back up your files and databse before updating.
+**** We are not responsible for any issues or loss of data caused by the update.
+
+
+FILE CHANGES
+——————————————————————————————————————
+1. Upload Files
+
+Upload the update.zip file to the public_html directory.
+Extract the contents of the zip file.
+
+
+2. Update the .env File
+
+Open the .env file in your root directory.
+Add the following line at the end of the file:
+
+MAINTENANCE_MODE="false"
+CACHE_STORE=file
+
+
+*** Important: Ensure there are no extra spaces before or after the value.
+
+
+LAST STEP
+——————————————————————————————————————
+
+Go to:
+https://yoursite.com/admin_path/update
+
+Clear the cache and cookies in your browser:
+https://yoursite.com/admin_path/settings/cache
+
+Remember to change the admin_path and yoursite.com to your actual site’s details.
