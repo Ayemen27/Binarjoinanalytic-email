@@ -1,9 +1,8 @@
 {
-    "item_id": "48095748",
-    "item_name": "Trash Mails - Ultimate Temporary Email Address System",
-    "buyer": "Mock Development User",
     "purchase_code": "Ay**--772283228",
-    "license": "Regular License (Mock)",
-    "supported_until": "2035-10-28 00:35:11",
-    "purchase_count": 1
+    "license_type": "development",
+    "client": "development_client",
+    "verified_at": "2025-10-28 00:55:08",
+    "expires_at": "2035-10-28 00:55:08",
+    "support_until": "2035-10-28 00:55:08"
 }
