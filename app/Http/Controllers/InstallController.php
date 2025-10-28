@@ -433,6 +433,7 @@ class InstallController extends Controller
         $settings = [
             ['key' => 'site_name', 'value' => $request->site_name],
             ['key' => 'site_url', 'value' => $request->site_url],
+            ['key' => 'admin_path', 'value' => $request->admin_path],
             ['key' => 'api_key', 'value' => Str::random(30)],
             ['key' => 'cronjob_key', 'value' => Str::random(30)],
         ];
@@ -443,10 +444,6 @@ class InstallController extends Controller
                 ['value' => $setting['value']]
             );
         }
-        
-        updateEnvFile('APP_URL', $request->site_url);
-        updateEnvFile('APP_NAME', $request->site_name);
-        updateEnvFile('ADMIN_PATH', $request->admin_path);
 
         if ($existingAdmin) {
             $existingAdmin->update([
@@ -490,10 +487,18 @@ class InstallController extends Controller
             'is_external' => 0
         ]);
 
-        setInstallState('SYSTEM_INSTALLED', '1');
+        $siteUrl = \App\Models\Setting::where('key', 'site_url')->value('value');
+        $siteName = \App\Models\Setting::where('key', 'site_name')->value('value');
+        $adminPath = \App\Models\Setting::where('key', 'admin_path')->value('value');
+
+        updateEnvFile('APP_URL', $siteUrl ?? url('/'));
+        updateEnvFile('APP_NAME', $siteName ?? 'Trash Mails');
+        updateEnvFile('ADMIN_PATH', $adminPath ?? 'admin');
         updateEnvFile('APP_DEBUG', 'false');
         updateEnvFile('APP_ENV', 'production');
         updateEnvFile('MAINTENANCE_MODE', 'false');
+
+        setInstallState('SYSTEM_INSTALLED', '1');
 
         return view('install.complete', ['currentStep' => 7]);
     }

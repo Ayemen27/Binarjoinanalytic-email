@@ -68,9 +68,8 @@ if (!function_exists('updateEnvFile')) {
             $newEnv = preg_replace($pattern, "{$key}={$value}", $currentEnv);
         } else {
             // Key doesn't exist, add it to the end of the .env file
-            //! we don't need to create key in this project
-            //* $newEnv = "{$currentEnv}\n{$key}={$value}";
-            return false;
+            $trimmed = rtrim($currentEnv);
+            $newEnv = empty($trimmed) ? "{$key}={$value}\n" : "{$trimmed}\n{$key}={$value}\n";
         }
 
         // Write the updated .env file
