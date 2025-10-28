@@ -18,17 +18,10 @@
                 <form action="{{ route('admin.login') }}" method="post" autocomplete="off">
                     @csrf
                     <div class="row row-cols-1 g-3">
-                        @if (is_demo())
-                            <div class="col">
-                                <x-input name="email" label="email" autofocus="autofocus" type="email" required
-                                    value="admin@demo.com" />
-                            </div>
-                        @else
-                            <div class="col">
-                                <x-input name="email" label="email" autofocus="autofocus" type="email" required
-                                    value="{{ old('username') }}" />
-                            </div>
-                        @endif
+                        <div class="col">
+                            <x-input name="email" label="email" autofocus="autofocus" type="email" required
+                                value="{{ old('email') }}" />
+                        </div>
 
                         @if (is_demo())
                             <div class="col">

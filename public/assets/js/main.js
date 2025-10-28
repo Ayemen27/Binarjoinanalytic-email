@@ -143,9 +143,12 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
     }
   }
 
-  $('.tagsinput input').tagsinput({
-    cancelConfirmKeysOnEmpty: false
-  });
+  // Initialize tagsinput only if jQuery and plugin are loaded
+  if (typeof $.fn.tagsinput !== 'undefined') {
+    $('.tagsinput input').tagsinput({
+      cancelConfirmKeysOnEmpty: false
+    });
+  }
 
   const goToValue = document.getElementById('goToValue');
 
