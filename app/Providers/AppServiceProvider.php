@@ -54,8 +54,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-
         try {
+            // Force HTTPS for all URLs in production/Replit environment
+            if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+                URL::forceScheme('https');
+            }
 
             if (env('SYSTEM_INSTALLED') == 1) {
 
