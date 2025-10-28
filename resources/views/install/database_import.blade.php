@@ -14,6 +14,38 @@
                     <form action="{{ route('install.databaseImport.post') }}" method="POST" id="importForm">
                         @csrf
                         <div class="row row-cols-1 g-3">
+
+                            <?php if(isset($tablesExist) && $tablesExist): ?>
+                            <div class="col">
+                                <div class="alert alert-warning border-0 shadow-sm">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+                                        <div>
+                                            <h5 class="mb-1">قاعدة البيانات تحتوي على جداول</h5>
+                                            <p class="mb-0 small">تم العثور على <?php echo e($tableCount); ?> جدول في قاعدة البيانات</p>
+                                        </div>
+                                    </div>
+                                    <hr class="my-2">
+                                    <p class="mb-3 small">يبدو أن قاعدة البيانات تحتوي بالفعل على بيانات. لديك خياران:</p>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="import_option" id="skipImport" value="skip" checked>
+                                        <label class="form-check-label fw-bold" for="skipImport">
+                                            تخطي الاستيراد والمتابعة
+                                        </label>
+                                        <p class="text-muted small ms-4 mb-0">استخدم البيانات الموجودة حالياً</p>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="import_option" id="forceReimport" value="force">
+                                        <label class="form-check-label fw-bold text-danger" for="forceReimport">
+                                            حذف الجداول الموجودة وإعادة الاستيراد
+                                        </label>
+                                        <p class="text-muted small ms-4 mb-0">⚠️ سيتم حذف جميع البيانات الحالية نهائياً</p>
+                                    </div>
+                                    <input type="hidden" name="force_reimport" id="force_reimport" value="0">
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="col">
                                 <label for="db_type" class="form-label">{{ __('Database Type') }}</label>
                                 <select name="db_type" id="db_type" class="form-select" required>
@@ -22,7 +54,7 @@
                                 </select>
                                 <small class="text-muted">{{ __('Select the database type that matches your configuration') }}</small>
                             </div>
-                            
+
                             <!-- Progress Bar Section -->
                             <div class="col" id="progressSection" style="display: none;">
                                 <div class="card border-0 shadow-sm">
@@ -35,12 +67,12 @@
                                             <p class="text-muted small mb-0">{{ __('Please wait, this process may take a few minutes...') }}</p>
                                         </div>
                                         <div class="progress" style="height: 25px;">
-                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                                 role="progressbar" 
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                 role="progressbar"
                                                  id="progressBar"
-                                                 style="width: 0%;" 
-                                                 aria-valuenow="0" 
-                                                 aria-valuemin="0" 
+                                                 style="width: 0%;"
+                                                 aria-valuenow="0"
+                                                 aria-valuemin="0"
                                                  aria-valuemax="100">
                                                 <span class="fw-bold" id="progressText">0%</span>
                                             </div>
@@ -112,7 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const progressStatus = document.getElementById('progressStatus');
-    
+    const forceReimportInput = document.getElementById('force_reimport'); // Get the hidden input
+
     const statusMessages = [
         "{{ __('Verifying database connection...') }}",
         "{{ __('Reading SQL file...') }}",
@@ -123,31 +156,53 @@ document.addEventListener('DOMContentLoaded', function() {
         "{{ __('Updating sequences...') }}",
         "{{ __('Finalizing import...') }}"
     ];
-    
+
+    // Handle radio button change to update hidden input
+    const skipImportRadio = document.getElementById('skipImport');
+    const forceReimportRadio = document.getElementById('forceReimport');
+
+    if (skipImportRadio && forceReimportRadio && forceReimportInput) {
+        skipImportRadio.addEventListener('change', function() {
+            if (this.checked) {
+                forceReimportInput.value = '0';
+            }
+        });
+
+        forceReimportRadio.addEventListener('change', function() {
+            if (this.checked) {
+                forceReimportInput.value = '1';
+            }
+        });
+    }
+
+
     form.addEventListener('submit', function(e) {
+        // Prevent default submission to handle AJAX or dynamic form submission if needed
+        // e.preventDefault(); // Uncomment if you are using AJAX or want to control submission further
+
         // إخفاء زر الإرسال وإظهار شريط التقدم
         submitButton.style.display = 'none';
         progressSection.style.display = 'block';
-        
+
         // عرض الرسالة الأولى مباشرة
         progressStatus.textContent = statusMessages[0];
-        
+
         // محاكاة التقدم
         let progress = 0;
         let messageIndex = 0;
-        
+
         const interval = setInterval(function() {
             // زيادة تدريجية صغيرة لضمان عدم تخطي الرسائل (0-5% كحد أقصى)
             progress += Math.random() * 4 + 1;
-            
+
             if (progress > 95) {
                 progress = 95; // توقف عند 95% حتى ينتهي الاستيراد فعلياً
             }
-            
+
             progressBar.style.width = progress + '%';
             progressBar.setAttribute('aria-valuenow', progress);
             progressText.textContent = Math.round(progress) + '%';
-            
+
             // تحديد الرسالة المناسبة بناءً على التقدم
             let newMessageIndex;
             if (progress < 84) {
@@ -156,13 +211,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // عند 84% وما فوق، نعرض الرسالة الأخيرة
                 newMessageIndex = statusMessages.length - 1;
             }
-            
+
             // عرض جميع الرسائل المتخطاة (لضمان عدم تفويت أي رسالة)
             while (messageIndex < newMessageIndex && messageIndex < statusMessages.length - 1) {
                 messageIndex++;
                 progressStatus.textContent = statusMessages[messageIndex];
             }
-            
+
             if (progress >= 95) {
                 clearInterval(interval);
             }

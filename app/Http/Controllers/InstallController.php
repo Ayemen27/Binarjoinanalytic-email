@@ -259,16 +259,59 @@ class InstallController extends Controller
             return redirect()->route('install.siteInfo');
         }
 
-        return view('install.database_import', ['currentStep' => 5]);
+        // فحص وجود الجداول
+        $tablesExist = false;
+        $tableCount = 0;
+        
+        try {
+            $dbDriver = env('DB_CONNECTION', 'pgsql');
+            
+            if ($dbDriver === 'pgsql') {
+                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")[0]->count;
+            } else {
+                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'")[0]->count;
+            }
+            
+            $tablesExist = $tableCount > 0;
+        } catch (Exception $e) {
+            // في حالة فشل الفحص، نستمر بشكل طبيعي
+        }
+
+        return view('install.database_import', [
+            'currentStep' => 5,
+            'tablesExist' => $tablesExist,
+            'tableCount' => $tableCount
+        ]);
     }
 
     public function databaseImportPost(Request $request)
     {
         $request->validate([
             'db_type' => 'required|in:mysql,pgsql',
+            'force_reimport' => 'nullable|boolean',
         ]);
 
         $dbType = $request->input('db_type');
+        $forceReimport = $request->input('force_reimport', false);
+        
+        // التحقق من وجود الجداول
+        $tablesExist = false;
+        try {
+            if ($dbType === 'pgsql') {
+                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")[0]->count;
+            } else {
+                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'")[0]->count;
+            }
+            $tablesExist = $tableCount > 0;
+        } catch (Exception $e) {
+            // متابعة في حالة فشل الفحص
+        }
+        
+        // إذا كانت الجداول موجودة والمستخدم لم يختر إعادة الاستيراد، نتخطى
+        if ($tablesExist && !$forceReimport) {
+            setInstallState('INSTALL_DATABASE_IMPORT', '1');
+            return redirect()->route('install.siteInfo');
+        }
         
         // Determine the SQL file based on database type
         $sqlFileName = $dbType === 'pgsql' ? 'data_pgsql.sql' : 'data_mysql.sql';
@@ -279,6 +322,27 @@ class InstallController extends Controller
         }
 
         try {
+            // إذا كان المستخدم يريد إعادة الاستيراد، نحذف الجداول أولاً
+            if ($forceReimport) {
+                if ($dbType === 'pgsql') {
+                    DB::statement('DROP SCHEMA public CASCADE');
+                    DB::statement('CREATE SCHEMA public');
+                    DB::statement('GRANT ALL ON SCHEMA public TO ' . env('DB_USERNAME'));
+                    DB::statement('GRANT ALL ON SCHEMA public TO public');
+                } else {
+                    // للـ MySQL، نحصل على قائمة الجداول ونحذفها
+                    DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+                    $tables = DB::select('SHOW TABLES');
+                    $dbName = env('DB_DATABASE');
+                    
+                    foreach ($tables as $table) {
+                        $tableName = $table->{"Tables_in_$dbName"};
+                        DB::statement("DROP TABLE IF EXISTS `$tableName`");
+                    }
+                    DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+                }
+            }
+            
             DB::unprepared(file_get_contents($sqlPath));
         } catch (Exception $e) {
             return redirect()->back()->withErrors(['skip' => "Unable to Import the database: " . $e->getMessage()]);
