@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["unzip", "php83", "php83Packages.composer"]
+packages = ["unzip", "php83", "php83Packages.composer", "mariadb_114"]
 
 [workflows]
 runButton = "Project"
@@ -49,10 +49,6 @@ externalPort = 3002
 [[ports]]
 localPort = 38721
 externalPort = 3000
-
-[[ports]]
-localPort = 46783
-externalPort = 4200
 
 [deployment]
 deploymentTarget = "vm"
