@@ -11,6 +11,7 @@ class AdvancedMySQLToPostgreSQLConverter
     private $content;
     private $tables = [];
     private $currentTable = null;
+    private $autoIncrementColumns = [];
     
     public function __construct($content)
     {
@@ -26,6 +27,7 @@ class AdvancedMySQLToPostgreSQLConverter
         $steps = [
             'إزالة أوامر MySQL الخاصة' => 'removeMySQLCommands',
             'استخراج أسماء الجداول' => 'extractTableNames',
+            'اكتشاف أعمدة AUTO_INCREMENT' => 'detectAutoIncrementColumns',
             'تحويل CREATE TABLE' => 'convertCreateTable',
             'تحويل أنواع البيانات' => 'convertDataTypes',
             'تحويل AUTO_INCREMENT' => 'convertAutoIncrement',
@@ -55,6 +57,56 @@ class AdvancedMySQLToPostgreSQLConverter
         preg_match_all('/CREATE\s+TABLE\s+[`"]?(\w+)[`"]?/i', $this->content, $matches);
         if (!empty($matches[1])) {
             $this->tables = $matches[1];
+        }
+    }
+    
+    private function detectAutoIncrementColumns()
+    {
+        // اكتشاف الأعمدة التي تحتوي على AUTO_INCREMENT من أوامر ALTER TABLE MODIFY
+        // النمط: ALTER TABLE `table_name` MODIFY `column_name` datatype AUTO_INCREMENT
+        preg_match_all(
+            '/ALTER\s+TABLE\s+`(\w+)`\s+MODIFY\s+`(\w+)`\s+.*?\s+AUTO_INCREMENT/i',
+            $this->content,
+            $matches,
+            PREG_SET_ORDER
+        );
+        
+        foreach ($matches as $match) {
+            $tableName = $match[1];
+            $columnName = $match[2];
+            
+            // تخزين الجدول والعمود كمفتاح مركب
+            $key = "{$tableName}.{$columnName}";
+            $this->autoIncrementColumns[$key] = [
+                'table' => $tableName,
+                'column' => $columnName
+            ];
+        }
+        
+        // البحث أيضاً في CREATE TABLE عن AUTO_INCREMENT داخل تعريف العمود
+        preg_match_all(
+            '/CREATE\s+TABLE\s+`(\w+)`\s*\((.*?)\)\s*ENGINE/is',
+            $this->content,
+            $tableMatches,
+            PREG_SET_ORDER
+        );
+        
+        foreach ($tableMatches as $tableMatch) {
+            $tableName = $tableMatch[1];
+            $tableContent = $tableMatch[2];
+            
+            // البحث عن أعمدة بها AUTO_INCREMENT داخل التعريف
+            if (preg_match_all('/`(\w+)`\s+[^,]*?AUTO_INCREMENT/i', $tableContent, $columnMatches)) {
+                foreach ($columnMatches[1] as $columnName) {
+                    $key = "{$tableName}.{$columnName}";
+                    if (!isset($this->autoIncrementColumns[$key])) {
+                        $this->autoIncrementColumns[$key] = [
+                            'table' => $tableName,
+                            'column' => $columnName
+                        ];
+                    }
+                }
+            }
         }
     }
     
@@ -94,12 +146,10 @@ class AdvancedMySQLToPostgreSQLConverter
     private function convertDataTypes()
     {
         $typeMapping = [
-            // unsigned integers - BIGINT
-            '/\bBIGINT\s+UNSIGNED\s+NOT\s+NULL\b/i' => 'BIGSERIAL NOT NULL',
+            // unsigned integers - BIGINT (لا نحول إلى BIGSERIAL هنا)
             '/\bBIGINT\s+UNSIGNED\b/i' => 'BIGINT',
             
-            // unsigned integers - INT
-            '/\bINT\s+UNSIGNED\s+NOT\s+NULL\b/i' => 'SERIAL NOT NULL',
+            // unsigned integers - INT (لا نحول إلى SERIAL هنا)
             '/\bINT\s+UNSIGNED\b/i' => 'INTEGER',
             '/\bINTEGER\s+UNSIGNED\b/i' => 'INTEGER',
             
@@ -135,16 +185,36 @@ class AdvancedMySQLToPostgreSQLConverter
     
     private function convertAutoIncrement()
     {
-        // تحويل BIGINT NOT NULL (من CREATE TABLE) - تم معالجته في convertDataTypes
+        // الآن نحتاج لتطبيق SERIAL/BIGSERIAL فقط على الأعمدة الموجودة في $autoIncrementColumns
+        
+        // نمر على كل CREATE TABLE ونستبدل الأنواع للأعمدة المحددة فقط
+        foreach ($this->autoIncrementColumns as $key => $info) {
+            $tableName = $info['table'];
+            $columnName = $info['column'];
+            
+            // استبدال BIGINT NOT NULL بـ BIGSERIAL لهذا العمود
+            $this->content = preg_replace(
+                '/(CREATE\s+TABLE\s+"' . $tableName . '"\s*\((?:[^)]|\([^)]*\))*?)"' . $columnName . '"\s+BIGINT\s+NOT\s+NULL/is',
+                '$1"' . $columnName . '" BIGSERIAL NOT NULL',
+                $this->content
+            );
+            
+            // استبدال INTEGER NOT NULL بـ SERIAL لهذا العمود
+            $this->content = preg_replace(
+                '/(CREATE\s+TABLE\s+"' . $tableName . '"\s*\((?:[^)]|\([^)]*\))*?)"' . $columnName . '"\s+INTEGER\s+NOT\s+NULL/is',
+                '$1"' . $columnName . '" SERIAL NOT NULL',
+                $this->content
+            );
+        }
         
         // إزالة AUTO_INCREMENT من MODIFY statements
         $this->content = preg_replace(
-            '/MODIFY\s+"(\w+)"\s+(BIGINT|INT|INTEGER)\s+(UNSIGNED\s+)?NOT\s+NULL\s+AUTO_INCREMENT;/i',
+            '/ALTER\s+TABLE\s+"(\w+)"\s+MODIFY\s+"(\w+)"\s+(BIGINT|INTEGER|INT)\s+(UNSIGNED\s+)?NOT\s+NULL\s+AUTO_INCREMENT;/i',
             '',
             $this->content
         );
         
-        // إزالة سطور AUTO_INCREMENT المنفصلة
+        // إزالة سطور التعليقات AUTO_INCREMENT
         $this->content = preg_replace('/--\s*AUTO_INCREMENT.*?\n/i', '', $this->content);
     }
     

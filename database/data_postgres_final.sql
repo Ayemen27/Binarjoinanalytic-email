@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 -- PostgreSQL Database Export
 -- Converted from MySQL dump
--- Conversion Date: 2025-10-28 03:23:28
+-- Conversion Date: 2025-10-28 03:29:49
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
 -- تعطيل المحفزات والقيود أثناء الاستيراد
@@ -110,7 +110,7 @@ CREATE TABLE "blog_posts" (
   "meta_title" VARCHAR(255) DEFAULT NULL,
   "tags" VARCHAR(255) DEFAULT NULL,
   "lang" VARCHAR(255) NOT NULL,
-  "category_id" BIGSERIAL NOT NULL,
+  "category_id" BIGINT NOT NULL,
   "created_at" timestamp NULL DEFAULT NULL,
   "updated_at" timestamp NULL DEFAULT NULL
 );
@@ -301,8 +301,8 @@ CREATE TABLE "jobs" (
   "payload" TEXT NOT NULL,
   "attempts" SMALLINT NOT NULL,
   "reserved_at" INTEGER DEFAULT NULL,
-  "available_at" SERIAL NOT NULL,
-  "created_at" SERIAL NOT NULL
+  "available_at" INTEGER NOT NULL,
+  "created_at" INTEGER NOT NULL
 );
 
 -- --------------------------------------------------------
@@ -398,7 +398,7 @@ CREATE TABLE "messages" (
   "receivedAt" VARCHAR(255) NOT NULL,
   "source" VARCHAR(255) NOT NULL,
   "attachments" TEXT,
-  "user_id" BIGSERIAL NOT NULL,
+  "user_id" BIGINT NOT NULL,
   "created_at" timestamp NULL DEFAULT NULL,
   "updated_at" timestamp NULL DEFAULT NULL
 );
@@ -516,7 +516,7 @@ CREATE TABLE "password_reset_tokens" (
 CREATE TABLE "personal_access_tokens" (
   "id" BIGSERIAL NOT NULL,
   "tokenable_type" VARCHAR(255) NOT NULL,
-  "tokenable_id" BIGSERIAL NOT NULL,
+  "tokenable_id" BIGINT NOT NULL,
   "name" VARCHAR(255) NOT NULL,
   "token" VARCHAR(64) NOT NULL,
   "abilities" TEXT,
@@ -573,7 +573,7 @@ INSERT INTO "plans" ("id", "tag", "name", "description", "is_active", "price", "
 CREATE TABLE "plan_features" (
   "id" SERIAL NOT NULL,
   "tag" VARCHAR(255) NOT NULL,
-  "plan_id" SERIAL NOT NULL,
+  "plan_id" INTEGER NOT NULL,
   "name" VARCHAR(255) NOT NULL,
   "description" VARCHAR(255) DEFAULT NULL,
   "value" VARCHAR(255) NOT NULL,
@@ -615,7 +615,7 @@ CREATE TABLE "plan_subscriptions" (
   "id" SERIAL NOT NULL,
   "tag" VARCHAR(255) NOT NULL,
   "subscriber_type" VARCHAR(255) NOT NULL,
-  "subscriber_id" BIGSERIAL NOT NULL,
+  "subscriber_id" BIGINT NOT NULL,
   "plan_id" INTEGER DEFAULT NULL,
   "name" VARCHAR(255) DEFAULT NULL,
   "description" VARCHAR(255) DEFAULT NULL,
@@ -646,9 +646,9 @@ CREATE TABLE "plan_subscriptions" (
 
 CREATE TABLE "plan_subscription_usage" (
   "id" SERIAL NOT NULL,
-  "subscription_id" SERIAL NOT NULL,
-  "feature_id" SERIAL NOT NULL,
-  "used" SERIAL NOT NULL,
+  "subscription_id" INTEGER NOT NULL,
+  "feature_id" INTEGER NOT NULL,
+  "used" INTEGER NOT NULL,
   "valid_until" timestamp NULL DEFAULT NULL,
   "created_at" timestamp NULL DEFAULT NULL,
   "updated_at" timestamp NULL DEFAULT NULL
