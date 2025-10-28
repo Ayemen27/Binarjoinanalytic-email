@@ -83,6 +83,74 @@ if (!function_exists('updateEnvFile')) {
 }
 
 
+if (!function_exists('installState')) {
+    /**
+     * الحصول على instance من InstallStateRepository
+     */
+    function installState()
+    {
+        return app(\App\Services\InstallStateRepository::class);
+    }
+}
+
+
+if (!function_exists('getInstallState')) {
+    /**
+     * الحصول على قيمة محددة من حالة التثبيت
+     */
+    function getInstallState($key, $default = '0')
+    {
+        return installState()->get($key, $default);
+    }
+}
+
+
+if (!function_exists('setInstallState')) {
+    /**
+     * تعيين قيمة محددة في حالة التثبيت
+     */
+    function setInstallState($key, $value)
+    {
+        $result = installState()->set($key, $value);
+        
+        if ($result && $key === 'SYSTEM_INSTALLED' && $value == '1') {
+            syncInstallStateToEnv();
+        }
+        
+        return $result;
+    }
+}
+
+
+if (!function_exists('isSystemInstalled')) {
+    /**
+     * التحقق من اكتمال التثبيت
+     */
+    function isSystemInstalled()
+    {
+        return installState()->isInstalled();
+    }
+}
+
+
+if (!function_exists('syncInstallStateToEnv')) {
+    /**
+     * مزامنة حالة التثبيت إلى ملف .env عند اكتمال التثبيت
+     */
+    function syncInstallStateToEnv()
+    {
+        $state = installState()->all();
+        
+        foreach ($state as $key => $value) {
+            if (strpos($key, 'INSTALL_') === 0 || $key === 'SYSTEM_INSTALLED') {
+                updateEnvFile($key, $value);
+            }
+        }
+        
+        return true;
+    }
+}
+
 
 if (!function_exists('isPluginEnabled')) {
     function isPluginEnabled($name)

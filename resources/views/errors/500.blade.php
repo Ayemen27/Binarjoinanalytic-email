@@ -2,7 +2,7 @@
 
 @section('code', '500')
 
-@if (env('SYSTEM_INSTALLED'))
+@if (isSystemInstalled())
     @section('title', translate('Server Error'))
     @section('message', translate('Whoops, something went wrong on our servers.'))
 @else

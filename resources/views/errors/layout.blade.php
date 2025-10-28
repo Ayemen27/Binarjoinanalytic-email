@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @if (env('SYSTEM_INSTALLED'))
+    @if (isSystemInstalled())
         <title>@yield('title') {{ config('seotools.meta.defaults.separator') }} {{ getSetting('site_name') }} </title>
         <link rel="icon" type="image/png" href="{{ asset(getSetting('favicon')) }}">
     @else
@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/vendor/fontawesome.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/vendor/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/error_style.css?v=' . env('SITE_VERSION')) }}" />
-    @if (env('SYSTEM_INSTALLED'))
+    @if (isSystemInstalled())
         @if (getCurrentLangDirection())
             <link rel="preload" href="{{ asset('assets/css/vendor/bootstrap.rtl.min.css') }}" as="style">
             <link rel="stylesheet" href="{{ asset('assets/themes/basic/css/rtl.css?v=' . env('SITE_VERSION')) }}"
@@ -3436,7 +3436,7 @@
 
         @if (in_array($code, [401, 403, 404, 419, 429]))
             <div class="row row-cols-auto align-items-center g-4">
-                @if (env('SYSTEM_INSTALLED'))
+                @if (isSystemInstalled())
                     <div class="col">
                         <a href="{{ route('index') }}"
                             class="btn btn-primary btn-md">{{ translate('Go Home') }}</a>

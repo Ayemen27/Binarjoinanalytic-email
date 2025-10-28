@@ -2,7 +2,7 @@
 
 @section('code', '403')
 
-@if (env('SYSTEM_INSTALLED'))
+@if (isSystemInstalled())
     @section('title', translate('Forbidden'))
     @section('message', translate('Sorry, you do not have permission to access this page.'))
 @else

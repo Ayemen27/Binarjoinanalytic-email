@@ -2,7 +2,7 @@
 
 @section('code', '401')
 
-@if (env('SYSTEM_INSTALLED'))
+@if (isSystemInstalled())
     @section('title', translate('Unauthorized'))
     @section('message', translate('Sorry, you are not authorized to access this page.'))
 @else

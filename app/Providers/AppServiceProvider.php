@@ -60,7 +60,7 @@ class AppServiceProvider extends ServiceProvider
                 URL::forceScheme('https');
             }
 
-            if (env('SYSTEM_INSTALLED') == 1) {
+            if (isSystemInstalled()) {
 
 
                 Event::listen(

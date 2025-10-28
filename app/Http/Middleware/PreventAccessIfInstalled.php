@@ -16,7 +16,7 @@ class PreventAccessIfInstalled
     public function handle(Request $request, Closure $next): Response
     {
         // Check if the system is already installed
-        if (env('SYSTEM_INSTALLED') == "1") {
+        if (isSystemInstalled()) {
             // Redirect to home or dashboard to prevent accessing installation
             return redirect()->route('index'); // Adjust this to your main page route
         }

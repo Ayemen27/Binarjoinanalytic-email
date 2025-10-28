@@ -109,6 +109,29 @@ Trash Mails is a temporary email address system built with Laravel 11. It provid
   - Admin Panel: `app/Http/Controllers/Admin/Settings/LicenseController.php`
   - License Storage: `public/license.json`
 
+### Install State Management System (October 2025)
+- **Problem Solved**: Fixed infinite installation loop in Replit environment where `.env` file was reset on restart
+- **Solution**: Persistent JSON-based state management instead of relying on `.env` variables
+  - Installation state stored in `storage/app/install_state.json` (persistent across restarts)
+  - `.env` variables synchronized only when installation completes
+  - Automatic migration from old `.env`-based system on first run
+- **Implementation Details**:
+  - `InstallStateRepository` - Service for managing installation state via JSON file
+  - Helper functions: `installState()`, `getInstallState()`, `setInstallState()`, `isSystemInstalled()`, `syncInstallStateToEnv()`
+  - All installation steps now use JSON state instead of `env()` calls
+  - Middleware updated to use `isSystemInstalled()` helper
+  - `AppServiceProvider` updated to check JSON state instead of `.env`
+- **State Variables Tracked**:
+  - `INSTALL_WELCOME`, `INSTALL_REQUIREMENTS`, `INSTALL_FILE_PERMISSIONS`
+  - `INSTALL_LICENSE`, `INSTALL_DATABASE_INFO`, `INSTALL_DATABASE_IMPORT`
+  - `INSTALL_SITE_INFO`, `SYSTEM_INSTALLED`
+  - Additional metadata: `installed_at`, `last_updated`
+- **File Locations**:
+  - Repository: `app/Services/InstallStateRepository.php`
+  - Helpers: `app/Helpers/Helper.php` (install state functions)
+  - State Storage: `storage/app/install_state.json`
+  - Updated files: `InstallController`, `RedirectIfNotInstalled`, `PreventAccessIfInstalled`, `AppServiceProvider`
+
 # External Dependencies
 
 ## Third-Party Services

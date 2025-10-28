@@ -27,7 +27,7 @@ class InstallController extends Controller
     {
         //dd('f');
 
-        if (env('INSTALL_WELCOME')) {
+        if (getInstallState('INSTALL_WELCOME') == '1') {
             return redirect()->route('install.requirements');
         }
 
@@ -41,7 +41,7 @@ class InstallController extends Controller
     public function welcomePost()
     {
         Artisan::call('key:generate');
-        updateEnvFile('INSTALL_WELCOME', '1');
+        setInstallState('INSTALL_WELCOME', '1');
         updateEnvFile('DEMO_MODE', 'false');
         updateEnvFile('APP_IN_DEV_MODE', 'false');
 
@@ -54,7 +54,7 @@ class InstallController extends Controller
     public function requirements()
     {
 
-        if (env('INSTALL_REQUIREMENTS')) {
+        if (getInstallState('INSTALL_REQUIREMENTS') == '1') {
             return redirect()->route('install.filePermissions');
         }
 
@@ -88,7 +88,7 @@ class InstallController extends Controller
             return redirect()->route('install.requirements');
         }
 
-        updateEnvFile('INSTALL_REQUIREMENTS', 1);
+        setInstallState('INSTALL_REQUIREMENTS', '1');
 
         return redirect()->route('install.filePermissions');
     }
@@ -97,7 +97,7 @@ class InstallController extends Controller
 
     public function filePermissions()
     {
-        if (env('INSTALL_FILE_PERMISSIONS')) {
+        if (getInstallState('INSTALL_FILE_PERMISSIONS') == '1') {
             return redirect()->route('install.license');
         }
 
@@ -113,14 +113,14 @@ class InstallController extends Controller
 
     public function filePermissionsPost(Request $request)
     {
-        updateEnvFile('INSTALL_FILE_PERMISSIONS', '1');
+        setInstallState('INSTALL_FILE_PERMISSIONS', '1');
         return redirect()->route('install.license');
     }
 
 
     public function license()
     {
-        if (env('INSTALL_LICENSE')) {
+        if (getInstallState('INSTALL_LICENSE') == '1') {
             return redirect()->route('install.databaseInfo');
         }
         return view('install.license', ['currentStep' => 3]);
@@ -150,7 +150,7 @@ class InstallController extends Controller
 
             File::put($filename, $jsonData);
 
-            updateEnvFile('INSTALL_LICENSE', '1');
+            setInstallState('INSTALL_LICENSE', '1');
 
             return redirect()->route('install.databaseInfo');
         } catch (\Exception $e) {
@@ -163,7 +163,7 @@ class InstallController extends Controller
 
     public function databaseInfo()
     {
-        if (env('INSTALL_DATABASE_INFO')) {
+        if (getInstallState('INSTALL_DATABASE_INFO') == '1') {
             return redirect()->route('install.databaseImport');
         }
 
@@ -248,14 +248,14 @@ class InstallController extends Controller
         updateEnvFile('DB_PASSWORD', $dbPassword);
 
 
-        updateEnvFile('INSTALL_DATABASE_INFO', '1');
+        setInstallState('INSTALL_DATABASE_INFO', '1');
 
         return redirect()->route('install.databaseImport');
     }
 
     public function databaseImport()
     {
-        if (env('INSTALL_DATABASE_IMPORT')) {
+        if (getInstallState('INSTALL_DATABASE_IMPORT') == '1') {
             return redirect()->route('install.siteInfo');
         }
 
@@ -285,7 +285,7 @@ class InstallController extends Controller
         }
 
         // Update environment variable upon completion
-        updateEnvFile('INSTALL_DATABASE_IMPORT', '1');
+        setInstallState('INSTALL_DATABASE_IMPORT', '1');
 
         return redirect()->route('install.siteInfo');
     }
@@ -293,7 +293,7 @@ class InstallController extends Controller
 
     public function download()
     {
-        if (env('INSTALL_DATABASE_IMPORT')) {
+        if (getInstallState('INSTALL_DATABASE_IMPORT') == '1') {
             return redirect()->route('install.siteInfo');
         }
 
@@ -312,7 +312,7 @@ class InstallController extends Controller
 
     public function skip()
     {
-        if (env('INSTALL_DATABASE_IMPORT')) {
+        if (getInstallState('INSTALL_DATABASE_IMPORT') == '1') {
             return redirect()->route('install.siteInfo');
         }
 
@@ -322,7 +322,7 @@ class InstallController extends Controller
             return redirect()->back()->withErrors(['skip' => __('You need to import the database first')]);
         }
 
-        updateEnvFile('INSTALL_DATABASE_IMPORT', '1');
+        setInstallState('INSTALL_DATABASE_IMPORT', '1');
 
         return redirect()->route('install.siteInfo');
     }
@@ -330,7 +330,7 @@ class InstallController extends Controller
 
     public function siteInfo()
     {
-        if (env('INSTALL_SITE_INFO')) {
+        if (getInstallState('INSTALL_SITE_INFO') == '1') {
             return redirect()->route('install.complete');
         }
 
@@ -383,14 +383,14 @@ class InstallController extends Controller
             'avatar' => config('lobage.default_avatar', 'assets/img/default-user.png'),
         ]);
 
-        updateEnvFile('INSTALL_SITE_INFO', 1);
+        setInstallState('INSTALL_SITE_INFO', '1');
 
         return redirect()->route('install.complete');
     }
 
     public function complete()
     {
-        if (env('SYSTEM_INSTALLED')) {
+        if (getInstallState('SYSTEM_INSTALLED') == '1') {
             return redirect()->route('admin.login');
         }
 
@@ -410,7 +410,7 @@ class InstallController extends Controller
             'is_external' => 0
         ]);
 
-        updateEnvFile('SYSTEM_INSTALLED', 1);
+        setInstallState('SYSTEM_INSTALLED', '1');
         updateEnvFile('APP_DEBUG', 'false');
         updateEnvFile('APP_ENV', 'production');
         updateEnvFile('MAINTENANCE_MODE', 'false');

@@ -2,7 +2,7 @@
 
 @section('code', '402')
 
-@if (env('SYSTEM_INSTALLED'))
+@if (isSystemInstalled())
     @section('title', translate('Payment Required'))
     @section('message', translate('Payment is required to access this resource.'))
 @else

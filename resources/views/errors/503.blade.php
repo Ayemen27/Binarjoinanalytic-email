@@ -2,7 +2,7 @@
 
 @section('code', '503')
 
-@if (env('SYSTEM_INSTALLED'))
+@if (isSystemInstalled())
     @section('title', translate('Service Unavailable'))
     @section('message', translate('The service is currently unavailable. Please try again later.'))
 @else

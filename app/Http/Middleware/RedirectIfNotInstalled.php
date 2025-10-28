@@ -15,7 +15,7 @@ class RedirectIfNotInstalled
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (env('SYSTEM_INSTALLED') != "1") {
+        if (!isSystemInstalled()) {
             // Allow static assets to be loaded during installation
             if ($request->is('assets/*') || 
                 $request->is('storage/*') || 
