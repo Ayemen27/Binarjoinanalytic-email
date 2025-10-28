@@ -1,0 +1,21 @@
+{
+    "Database Import": "Database Import",
+    "Click the button below to import the database.": "Click the button below to import the database.",
+    "Database Type": "Database Type",
+    "Select the database type that matches your configuration": "Select the database type that matches your configuration",
+    "Import Database": "Import Database",
+    "Download SQL File": "Download SQL File",
+    "Skip": "Skip",
+    "You can download the SQL file and import it manually to your server. After that, click skip.": "You can download the SQL file and import it manually to your server. After that, click skip.",
+    "Importing database...": "Importing database...",
+    "Please wait, this process may take a few minutes...": "Please wait, this process may take a few minutes...",
+    "Starting import...": "Starting import...",
+    "Verifying database connection...": "Verifying database connection...",
+    "Reading SQL file...": "Reading SQL file...",
+    "Creating tables...": "Creating tables...",
+    "Importing data...": "Importing data...",
+    "Adding primary keys...": "Adding primary keys...",
+    "Adding indexes...": "Adding indexes...",
+    "Updating sequences...": "Updating sequences...",
+    "Finalizing import...": "Finalizing import..."
+}

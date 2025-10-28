@@ -31,8 +31,8 @@
                                             <div class="spinner-border text-primary mb-2" role="status">
                                                 <span class="visually-hidden">Loading...</span>
                                             </div>
-                                            <h5 class="mb-1">جاري استيراد قاعدة البيانات</h5>
-                                            <p class="text-muted small mb-0">يرجى الانتظار، قد تستغرق هذه العملية بضع دقائق...</p>
+                                            <h5 class="mb-1">{{ __('Importing database...') }}</h5>
+                                            <p class="text-muted small mb-0">{{ __('Please wait, this process may take a few minutes...') }}</p>
                                         </div>
                                         <div class="progress" style="height: 25px;">
                                             <div class="progress-bar progress-bar-striped progress-bar-animated" 
@@ -46,7 +46,7 @@
                                             </div>
                                         </div>
                                         <div class="mt-2 text-center">
-                                            <small class="text-muted" id="progressStatus">بدء الاستيراد...</small>
+                                            <small class="text-muted" id="progressStatus">{{ __('Starting import...') }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -114,14 +114,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressStatus = document.getElementById('progressStatus');
     
     const statusMessages = [
-        'التحقق من الاتصال بقاعدة البيانات...',
-        'قراءة ملف SQL...',
-        'إنشاء الجداول...',
-        'استيراد البيانات...',
-        'إضافة المفاتيح الأساسية...',
-        'إضافة الفهارس...',
-        'تحديث التسلسلات...',
-        'إنهاء الاستيراد...'
+        "{{ __('Verifying database connection...') }}",
+        "{{ __('Reading SQL file...') }}",
+        "{{ __('Creating tables...') }}",
+        "{{ __('Importing data...') }}",
+        "{{ __('Adding primary keys...') }}",
+        "{{ __('Adding indexes...') }}",
+        "{{ __('Updating sequences...') }}",
+        "{{ __('Finalizing import...') }}"
     ];
     
     form.addEventListener('submit', function(e) {

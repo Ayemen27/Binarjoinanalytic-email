@@ -1,0 +1,21 @@
+{
+    "Database Import": "استيراد قاعدة البيانات",
+    "Click the button below to import the database.": "انقر على الزر أدناه لاستيراد قاعدة البيانات.",
+    "Database Type": "نوع قاعدة البيانات",
+    "Select the database type that matches your configuration": "اختر نوع قاعدة البيانات المطابق لإعداداتك",
+    "Import Database": "استيراد قاعدة البيانات",
+    "Download SQL File": "تحميل ملف SQL",
+    "Skip": "تخطي",
+    "You can download the SQL file and import it manually to your server. After that, click skip.": "يمكنك تحميل ملف SQL واستيراده يدوياً إلى الخادم الخاص بك. بعد ذلك، انقر على تخطي.",
+    "Importing database...": "جاري استيراد قاعدة البيانات...",
+    "Please wait, this process may take a few minutes...": "يرجى الانتظار، قد تستغرق هذه العملية بضع دقائق...",
+    "Starting import...": "بدء الاستيراد...",
+    "Verifying database connection...": "التحقق من الاتصال بقاعدة البيانات...",
+    "Reading SQL file...": "قراءة ملف SQL...",
+    "Creating tables...": "إنشاء الجداول...",
+    "Importing data...": "استيراد البيانات...",
+    "Adding primary keys...": "إضافة المفاتيح الأساسية...",
+    "Adding indexes...": "إضافة الفهارس...",
+    "Updating sequences...": "تحديث التسلسلات...",
+    "Finalizing import...": "إنهاء الاستيراد..."
+}

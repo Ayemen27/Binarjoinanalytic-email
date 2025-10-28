@@ -30,6 +30,7 @@ class AdvancedMySQLToPostgreSQLConverter
             'اكتشاف أعمدة AUTO_INCREMENT' => 'detectAutoIncrementColumns',
             'تحويل CREATE TABLE' => 'convertCreateTable',
             'تحويل أنواع البيانات' => 'convertDataTypes',
+            'تحويل قيم BOOLEAN' => 'convertBooleanValues',
             'تحويل AUTO_INCREMENT' => 'convertAutoIncrement',
             'إزالة ENGINE و CHARSET' => 'removeEngineAndCharset',
             'تحويل الفهارس والمفاتيح' => 'convertIndexesAndKeys',
@@ -181,6 +182,182 @@ class AdvancedMySQLToPostgreSQLConverter
         foreach ($typeMapping as $pattern => $replacement) {
             $this->content = preg_replace($pattern, $replacement, $this->content);
         }
+    }
+    
+    private function convertBooleanValues()
+    {
+        // تحويل القيم الافتراضية للأعمدة BOOLEAN
+        // من DEFAULT '1' إلى DEFAULT TRUE
+        // من DEFAULT '0' إلى DEFAULT FALSE
+        $this->content = preg_replace('/BOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+\'1\'/i', 'BOOLEAN NOT NULL DEFAULT TRUE', $this->content);
+        $this->content = preg_replace('/BOOLEAN\s+NOT\s+NULL\s+DEFAULT\s+\'0\'/i', 'BOOLEAN NOT NULL DEFAULT FALSE', $this->content);
+        $this->content = preg_replace('/BOOLEAN\s+DEFAULT\s+\'1\'/i', 'BOOLEAN DEFAULT TRUE', $this->content);
+        $this->content = preg_replace('/BOOLEAN\s+DEFAULT\s+\'0\'/i', 'BOOLEAN DEFAULT FALSE', $this->content);
+        
+        // تحويل قيم INSERT للأعمدة BOOLEAN
+        // نهج مباشر: معالجة كل جدول يحتوي على أعمدة BOOLEAN
+        
+        // قائمة بالجداول وأعمدتها BOOLEAN (يمكن استخراجها تلقائياً من CREATE TABLE)
+        $tablesWithBoolean = [
+            'ads' => ['status'],
+            'notifications' => ['to_admin', 'is_read'],
+            'plugins' => ['status', 'is_featured'],
+            'themes' => ['status'],
+            'users' => ['status'],
+            'plans' => ['is_active', 'is_lifetime', 'is_featured'],
+            'plan_features' => ['is_unlimited'],
+            'translates' => ['type'],
+        ];
+        
+        foreach ($tablesWithBoolean as $tableName => $boolColumns) {
+            // البحث عن INSERT لهذا الجدول
+            $pattern = '/INSERT\s+INTO\s+"' . preg_quote($tableName) . '"\s*\(([^)]+)\)\s+VALUES(.*?);/is';
+            
+            $this->content = preg_replace_callback($pattern, function($matches) use ($boolColumns, $tableName) {
+                $columnList = $matches[1];
+                $valuesSection = $matches[2];
+                
+                // تحديد موقع كل عمود BOOLEAN
+                $columns = array_map(function($c) {
+                    return trim(str_replace('"', '', $c));
+                }, explode(',', $columnList));
+                
+                $boolPositions = [];
+                foreach ($boolColumns as $boolCol) {
+                    $pos = array_search($boolCol, $columns);
+                    if ($pos !== false) {
+                        $boolPositions[$pos] = true;
+                    }
+                }
+                
+                if (empty($boolPositions)) {
+                    return $matches[0];
+                }
+                
+                // معالجة كل صف VALUES
+                $valuesSection = preg_replace_callback('/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/s', function($row) use ($boolPositions) {
+                    $content = $row[1];
+                    $values = [];
+                    $current = '';
+                    $inString = false;
+                    $stringChar = null;
+                    $depth = 0;
+                    
+                    // تحليل القيم
+                    for ($i = 0; $i < strlen($content); $i++) {
+                        $char = $content[$i];
+                        
+                        if (($char === '"' || $char === "'") && ($i == 0 || $content[$i-1] !== '\\')) {
+                            if (!$inString) {
+                                $inString = true;
+                                $stringChar = $char;
+                            } elseif ($char === $stringChar) {
+                                // تحقق من escape مزدوج
+                                if ($i + 1 < strlen($content) && $content[$i + 1] === $stringChar) {
+                                    $current .= $char . $content[$i + 1];
+                                    $i++;
+                                    continue;
+                                }
+                                $inString = false;
+                            }
+                            $current .= $char;
+                        } elseif ($char === '{' && !$inString) {
+                            $depth++;
+                            $current .= $char;
+                        } elseif ($char === '}' && !$inString) {
+                            $depth--;
+                            $current .= $char;
+                        } elseif ($char === ',' && !$inString && $depth === 0) {
+                            $values[] = trim($current);
+                            $current = '';
+                        } else {
+                            $current .= $char;
+                        }
+                    }
+                    $values[] = trim($current);
+                    
+                    // تحويل قيم BOOLEAN
+                    foreach ($boolPositions as $pos => $dummy) {
+                        if (isset($values[$pos])) {
+                            if ($values[$pos] === '1') {
+                                $values[$pos] = 'TRUE';
+                            } elseif ($values[$pos] === '0') {
+                                $values[$pos] = 'FALSE';
+                            }
+                        }
+                    }
+                    
+                    return '(' . implode(', ', $values) . ')';
+                }, $valuesSection);
+                
+                return 'INSERT INTO "' . $tableName . '" (' . $columnList . ') VALUES' . $valuesSection . ';';
+            }, $this->content);
+        }
+    }
+    
+    // دالة مساعدة لتحليل القيم مع مراعاة النصوص والأقواس المتداخلة
+    private function parseValues($valueString)
+    {
+        $values = [];
+        $current = '';
+        $inQuote = false;
+        $quoteChar = null;
+        $depth = 0;
+        
+        $len = strlen($valueString);
+        for ($i = 0; $i < $len; $i++) {
+            $char = $valueString[$i];
+            $prevChar = $i > 0 ? $valueString[$i - 1] : '';
+            
+            // التعامل مع الاقتباسات
+            if (($char === "'" || $char === '"') && $prevChar !== '\\') {
+                if (!$inQuote) {
+                    $inQuote = true;
+                    $quoteChar = $char;
+                    $current .= $char;
+                } elseif ($char === $quoteChar) {
+                    // تحقق من escape مزدوج ('' أو "")
+                    if ($i + 1 < $len && $valueString[$i + 1] === $quoteChar) {
+                        $current .= $char . $valueString[$i + 1];
+                        $i++;
+                    } else {
+                        $inQuote = false;
+                        $quoteChar = null;
+                        $current .= $char;
+                    }
+                } else {
+                    $current .= $char;
+                }
+            }
+            // التعامل مع الأقواس المتداخلة
+            elseif ($char === '(' && !$inQuote) {
+                $depth++;
+                $current .= $char;
+            }
+            elseif ($char === ')' && !$inQuote) {
+                $depth--;
+                $current .= $char;
+            }
+            // الفاصلة - فاصل بين القيم
+            elseif ($char === ',' && !$inQuote && $depth === 0) {
+                $values[] = $current;
+                $current = '';
+                // تخطي المسافات بعد الفاصلة
+                while ($i + 1 < $len && $valueString[$i + 1] === ' ') {
+                    $i++;
+                }
+            }
+            else {
+                $current .= $char;
+            }
+        }
+        
+        // إضافة القيمة الأخيرة
+        if ($current !== '') {
+            $values[] = $current;
+        }
+        
+        return $values;
     }
     
     private function convertAutoIncrement()
