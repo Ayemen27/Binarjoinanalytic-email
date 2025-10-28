@@ -37,6 +37,12 @@
                         </div>
                     </form>
                     <div class="mt-3">
+                        @if(env('LICENSE_MOCK_MODE', false) === true || env('LICENSE_MOCK_MODE', false) === 'true')
+                        <div class="alert alert-info mt-3" role="alert">
+                            <strong><i class="fas fa-code"></i> {{ __('وضع المحاكاة مُفعّل') }}</strong><br>
+                            <p class="mb-0">أنت تستخدم وضع المحاكاة للتطوير. يمكنك إدخال أي رمز شراء وسيتم قبوله تلقائياً.</p>
+                        </div>
+                        @endif
                         <div class="alert alert-warning mt-3" role="alert">
                             <strong>{{ __('Notice:') }}</strong><br>
                             <ul>

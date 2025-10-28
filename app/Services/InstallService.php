@@ -54,6 +54,11 @@ class InstallService
 
     public function checkLicense($key, $back_up = false)
     {
+        // وضع المحاكاة - للتطوير والاختبار فقط
+        if (env('LICENSE_MOCK_MODE', false) === true || env('LICENSE_MOCK_MODE', false) === 'true') {
+            return $this->getMockLicenseResponse($key);
+        }
+
         try {
             if (!$back_up) {
                 $client = new Client([
@@ -84,6 +89,37 @@ class InstallService
 
             return $sale;
         }
+    }
+
+    /**
+     * إرجاع استجابة محاكاة للترخيص - للتطوير فقط
+     */
+    private function getMockLicenseResponse($key)
+    {
+        // تحقق من أن المفتاح ليس فارغاً
+        if (empty($key)) {
+            return [
+                'status' => false,
+                'message' => 'رمز الشراء مطلوب',
+                'action' => false,
+            ];
+        }
+
+        // استجابة محاكاة ناجحة
+        return [
+            'status' => true,
+            'message' => 'تم التحقق من الترخيص بنجاح (وضع المحاكاة)',
+            'action' => false,
+            'data' => [
+                'item_id' => '48095748',
+                'item_name' => 'Trash Mails - Ultimate Temporary Email Address System',
+                'buyer' => 'Mock Development User',
+                'purchase_code' => $key,
+                'license' => 'Regular License (Mock)',
+                'supported_until' => now()->addYears(10)->format('Y-m-d H:i:s'),
+                'purchase_count' => 1,
+            ],
+        ];
     }
 
     public function importDatabase()
