@@ -25,7 +25,6 @@ Route::namespace('Admin')
 
         Route::middleware(['demo', 'auth:admin', 'admin'])->group(function () {
             Route::get('/', 'DashboardController@index')->name('dashboard');
-            Route::get('/dashboard', 'DashboardController@index')->name('dashboard');
             Route::get('/get-data', 'DashboardController@getData');
 
 
