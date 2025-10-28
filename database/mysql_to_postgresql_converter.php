@@ -3,14 +3,14 @@
 
 /**
  * MySQL to PostgreSQL Advanced Converter
- * تحويل متقدم من MySQL إلى PostgreSQL
+ * تحويل متقدم من MySQL إلى PostgreSQL - نسخة محسّنة
  */
 
 class AdvancedMySQLToPostgreSQLConverter
 {
     private $content;
     private $tables = [];
-    private $insertStatements = [];
+    private $currentTable = null;
     
     public function __construct($content)
     {
@@ -20,18 +20,20 @@ class AdvancedMySQLToPostgreSQLConverter
     public function convert()
     {
         echo "═══════════════════════════════════════════════════════════\n";
-        echo "  MySQL to PostgreSQL Converter\n";
+        echo "  MySQL to PostgreSQL Converter - Enhanced Version\n";
         echo "═══════════════════════════════════════════════════════════\n\n";
         
         $steps = [
             'إزالة أوامر MySQL الخاصة' => 'removeMySQLCommands',
+            'استخراج أسماء الجداول' => 'extractTableNames',
             'تحويل CREATE TABLE' => 'convertCreateTable',
             'تحويل أنواع البيانات' => 'convertDataTypes',
             'تحويل AUTO_INCREMENT' => 'convertAutoIncrement',
-            'تحويل الفهارس والمفاتيح' => 'convertIndexesAndKeys',
             'إزالة ENGINE و CHARSET' => 'removeEngineAndCharset',
+            'تحويل الفهارس والمفاتيح' => 'convertIndexesAndKeys',
             'تحويل INSERT statements' => 'convertInserts',
             'تحويل FOREIGN KEYS' => 'convertForeignKeys',
+            'تنظيف الصيغة النهائية' => 'cleanupSyntax',
             'إضافة رأس PostgreSQL' => 'addPostgreSQLHeader',
         ];
         
@@ -42,19 +44,39 @@ class AdvancedMySQLToPostgreSQLConverter
         }
         
         echo "\n✓ اكتمل التحويل بنجاح!\n";
+        echo "✓ تم تحويل " . count($this->tables) . " جدول\n";
         
         return $this->content;
+    }
+    
+    private function extractTableNames()
+    {
+        // استخراج أسماء جميع الجداول من CREATE TABLE
+        preg_match_all('/CREATE\s+TABLE\s+[`"]?(\w+)[`"]?/i', $this->content, $matches);
+        if (!empty($matches[1])) {
+            $this->tables = $matches[1];
+        }
     }
     
     private function removeMySQLCommands()
     {
         // إزالة التعليقات الخاصة بـ MySQL
-        $this->content = preg_replace('/\/\*![\d\s\w=@_;,]+\*\/;?\s*/s', '', $this->content);
+        $this->content = preg_replace('/\/\*!\d+\s+.*?\*\/;?\s*/s', '', $this->content);
         
-        // إزالة أوامر SET
-        $this->content = preg_replace('/SET\s+(SQL_MODE|@OLD_.*?|NAMES|time_zone)\s*=.*?;/i', '', $this->content);
+        // إزالة أوامر SET المختلفة
+        $patterns = [
+            '/SET\s+SQL_MODE\s*=.*?;/is',
+            '/SET\s+@OLD_.*?;/is',
+            '/SET\s+NAMES\s+.*?;/is',
+            '/SET\s+time_zone\s*=.*?;/is',
+            '/SET\s+character_set_client\s*=.*?;/is',
+        ];
         
-        // إزالة START TRANSACTION و BEGIN و COMMIT لأننا سنضيف BEGIN/COMMIT واحد في الرأس والتذييل
+        foreach ($patterns as $pattern) {
+            $this->content = preg_replace($pattern, '', $this->content);
+        }
+        
+        // إزالة START TRANSACTION و BEGIN و COMMIT
         $this->content = str_replace('START TRANSACTION;', '', $this->content);
         $this->content = preg_replace('/^\s*BEGIN;\s*$/m', '', $this->content);
         $this->content = preg_replace('/^\s*COMMIT;\s*$/m', '', $this->content);
@@ -72,29 +94,38 @@ class AdvancedMySQLToPostgreSQLConverter
     private function convertDataTypes()
     {
         $typeMapping = [
-            // unsigned integers
-            '/\bbigint\s+UNSIGNED\b/i' => 'BIGINT',
-            '/\bint\s+UNSIGNED\b/i' => 'INTEGER',
-            '/\bmediumint\s+UNSIGNED\b/i' => 'INTEGER',
-            '/\bsmallint\s+UNSIGNED\b/i' => 'INTEGER',
-            '/\btinyint\s+UNSIGNED\b/i' => 'SMALLINT',
+            // unsigned integers - BIGINT
+            '/\bBIGINT\s+UNSIGNED\s+NOT\s+NULL\b/i' => 'BIGSERIAL NOT NULL',
+            '/\bBIGINT\s+UNSIGNED\b/i' => 'BIGINT',
+            
+            // unsigned integers - INT
+            '/\bINT\s+UNSIGNED\s+NOT\s+NULL\b/i' => 'SERIAL NOT NULL',
+            '/\bINT\s+UNSIGNED\b/i' => 'INTEGER',
+            '/\bINTEGER\s+UNSIGNED\b/i' => 'INTEGER',
+            
+            // unsigned integers - others
+            '/\bMEDIUMINT\s+UNSIGNED\b/i' => 'INTEGER',
+            '/\bSMALLINT\s+UNSIGNED\b/i' => 'INTEGER',
+            '/\bTINYINT\s+UNSIGNED\b/i' => 'SMALLINT',
             
             // tinyint(1) للـ boolean
-            '/\btinyint\s*\(1\)/i' => 'BOOLEAN',
-            '/\btinyint\b/i' => 'SMALLINT',
+            '/\bTINYINT\s*\(1\)/i' => 'BOOLEAN',
+            '/\bTINYINT\b/i' => 'SMALLINT',
             
             // text types
-            '/\blongtext\b/i' => 'TEXT',
-            '/\bmediumtext\b/i' => 'TEXT',
-            '/\btinytext\b/i' => 'TEXT',
+            '/\bLONGTEXT\b/i' => 'TEXT',
+            '/\bMEDIUMTEXT\b/i' => 'TEXT',
+            '/\bTINYTEXT\b/i' => 'TEXT',
             
             // datetime
-            '/\bdatetime\b/i' => 'TIMESTAMP',
+            '/\bDATETIME\b/i' => 'TIMESTAMP',
             
-            // إزالة CHARACTER SET و COLLATE من varchar
-            '/varchar\s*\((\d+)\)\s+CHARACTER\s+SET\s+\w+\s+COLLATE\s+[\w_]+/i' => 'VARCHAR($1)',
-            '/varchar\s*\((\d+)\)\s+CHARACTER\s+SET\s+\w+/i' => 'VARCHAR($1)',
-            '/varchar\s*\((\d+)\)\s+COLLATE\s+[\w_]+/i' => 'VARCHAR($1)',
+            // إزالة CHARACTER SET و COLLATE من text/varchar
+            '/TEXT\s+CHARACTER\s+SET\s+\w+\s+COLLATE\s+[\w_]+/i' => 'TEXT',
+            '/TEXT\s+CHARACTER\s+SET\s+\w+/i' => 'TEXT',
+            '/VARCHAR\s*\((\d+)\)\s+CHARACTER\s+SET\s+\w+\s+COLLATE\s+[\w_]+/i' => 'VARCHAR($1)',
+            '/VARCHAR\s*\((\d+)\)\s+CHARACTER\s+SET\s+\w+/i' => 'VARCHAR($1)',
+            '/VARCHAR\s*\((\d+)\)\s+COLLATE\s+[\w_]+/i' => 'VARCHAR($1)',
         ];
         
         foreach ($typeMapping as $pattern => $replacement) {
@@ -104,16 +135,11 @@ class AdvancedMySQLToPostgreSQLConverter
     
     private function convertAutoIncrement()
     {
-        // تحويل bigint NOT NULL AUTO_INCREMENT إلى BIGSERIAL
-        $this->content = preg_replace(
-            '/"(\w+)"\s+BIGINT\s+NOT\s+NULL\s*,\s*$/m',
-            '"$1" BIGSERIAL NOT NULL,',
-            $this->content
-        );
+        // تحويل BIGINT NOT NULL (من CREATE TABLE) - تم معالجته في convertDataTypes
         
-        // إزالة AUTO_INCREMENT من ALTER TABLE
+        // إزالة AUTO_INCREMENT من MODIFY statements
         $this->content = preg_replace(
-            '/MODIFY\s+"(\w+)"\s+BIGINT\s+NOT\s+NULL\s+AUTO_INCREMENT;/i',
+            '/MODIFY\s+"(\w+)"\s+(BIGINT|INT|INTEGER)\s+(UNSIGNED\s+)?NOT\s+NULL\s+AUTO_INCREMENT;/i',
             '',
             $this->content
         );
@@ -124,37 +150,69 @@ class AdvancedMySQLToPostgreSQLConverter
     
     private function convertIndexesAndKeys()
     {
-        // تحويل ADD PRIMARY KEY
-        $this->content = preg_replace(
-            '/ALTER\s+TABLE\s+"(\w+)"\s+ADD\s+PRIMARY\s+KEY\s+\("(\w+)"\);/i',
-            'ALTER TABLE "$1" ADD CONSTRAINT "$1_pkey" PRIMARY KEY ("$2");',
-            $this->content
-        );
+        // معالجة ALTER TABLE مع الفهارس والمفاتيح
+        // نحتاج لمعالجة كل ALTER TABLE بشكل منفصل لاستخراج اسم الجدول
         
-        // تحويل ADD UNIQUE KEY
-        $this->content = preg_replace(
-            '/ADD\s+UNIQUE\s+KEY\s+"(\w+)"\s+\("(\w+)"\)/i',
-            'ADD CONSTRAINT "$1" UNIQUE ("$2")',
-            $this->content
-        );
-        
-        // تحويل ADD KEY (index)
-        $this->content = preg_replace(
-            '/ADD\s+KEY\s+"(\w+)"\s+\("(\w+)"\)/i',
-            'CREATE INDEX "$1" ON "$table_name" ("$2")',
+        $this->content = preg_replace_callback(
+            '/ALTER\s+TABLE\s+"(\w+)"\s+(.*?);/is',
+            function($matches) {
+                $tableName = $matches[1];
+                $alterContent = $matches[2];
+                $result = [];
+                
+                // تقسيم الأوامر المتعددة (ADD ... , ADD ...)
+                $commands = preg_split('/,\s*(?=ADD\s+)/i', $alterContent);
+                
+                foreach ($commands as $command) {
+                    $command = trim($command);
+                    
+                    // ADD PRIMARY KEY
+                    if (preg_match('/ADD\s+PRIMARY\s+KEY\s+\("(\w+)"\)/i', $command, $m)) {
+                        $result[] = "ALTER TABLE \"{$tableName}\" ADD CONSTRAINT \"{$tableName}_pkey\" PRIMARY KEY (\"{$m[1]}\");";
+                    }
+                    // ADD UNIQUE KEY
+                    elseif (preg_match('/ADD\s+UNIQUE\s+KEY\s+"(\w+)"\s+\((.*?)\)/i', $command, $m)) {
+                        $result[] = "ALTER TABLE \"{$tableName}\" ADD CONSTRAINT \"{$m[1]}\" UNIQUE ({$m[2]});";
+                    }
+                    // ADD KEY (index) - single column
+                    elseif (preg_match('/ADD\s+KEY\s+"(\w+)"\s+\("(\w+)"\)/i', $command, $m)) {
+                        $result[] = "CREATE INDEX \"{$m[1]}\" ON \"{$tableName}\" (\"{$m[2]}\");";
+                    }
+                    // ADD KEY (index) - multiple columns
+                    elseif (preg_match('/ADD\s+KEY\s+"(\w+)"\s+\((.*?)\)/i', $command, $m)) {
+                        $result[] = "CREATE INDEX \"{$m[1]}\" ON \"{$tableName}\" ({$m[2]});";
+                    }
+                    // MODIFY (ignore for now)
+                    elseif (preg_match('/MODIFY\s+/i', $command)) {
+                        // تم معالجته في convertAutoIncrement
+                    }
+                    else {
+                        // أوامر أخرى - نبقيها كما هي
+                        if (trim($command)) {
+                            $result[] = "ALTER TABLE \"{$tableName}\" {$command};";
+                        }
+                    }
+                }
+                
+                return implode("\n", $result);
+            },
             $this->content
         );
     }
     
     private function removeEngineAndCharset()
     {
-        // إزالة ENGINE=InnoDB
-        $this->content = preg_replace('/\)\s*ENGINE\s*=\s*\w+(\s+DEFAULT\s+CHARSET\s*=\s*\w+)?(\s+COLLATE\s*=?\s*[\w_]+)?;/i', ');', $this->content);
+        // إزالة ENGINE=InnoDB وما شابه
+        $this->content = preg_replace(
+            '/\)\s*ENGINE\s*=\s*\w+(\s+DEFAULT\s+CHARSET\s*=\s*\w+)?(\s+COLLATE\s*=?\s*[\w_]+)?(\s+ROW_FORMAT\s*=\s*\w+)?;/i',
+            ');',
+            $this->content
+        );
         
         // إزالة DEFAULT CHARSET
         $this->content = preg_replace('/DEFAULT\s+CHARSET\s*=\s*\w+/i', '', $this->content);
         
-        // إزالة CHARACTER SET من definitions
+        // إزالة CHARACTER SET من definitions المتبقية
         $this->content = preg_replace('/CHARACTER\s+SET\s+\w+/i', '', $this->content);
         
         // إزالة COLLATE
@@ -164,32 +222,69 @@ class AdvancedMySQLToPostgreSQLConverter
     private function convertInserts()
     {
         // في PostgreSQL، القوس المفردة يتم escape بمضاعفتها '' بدلاً من \'
-        // تحويل MySQL escape (\') إلى PostgreSQL escape ('')
         $this->content = str_replace("\\'", "''", $this->content);
         
-        // تحويل MySQL escape (\") إلى PostgreSQL (لكن " لا يحتاج escape في PostgreSQL strings)
+        // تحويل MySQL escape (\") إلى PostgreSQL
         $this->content = str_replace('\\"', '"', $this->content);
+        
+        // تحويل \n إلى newline فعلي في النصوص
+        // PostgreSQL يفهم \n بشكل مختلف
     }
     
     private function convertForeignKeys()
     {
-        // تحويل FOREIGN KEY constraints
-        // Laravel migrations ستتعامل معها، لكن إذا كانت في SQL:
+        // معالجة FOREIGN KEY constraints مع ALTER TABLE
+        $this->content = preg_replace_callback(
+            '/ALTER\s+TABLE\s+"(\w+)"\s+ADD\s+CONSTRAINT\s+"(\w+)"\s+FOREIGN\s+KEY\s+\("(\w+)"\)\s+REFERENCES\s+"(\w+)"\s+\("(\w+)"\)((?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|SET\s+NULL|RESTRICT|NO\s+ACTION))*)/is',
+            function($matches) {
+                $tableName = $matches[1];
+                $constraintName = $matches[2];
+                $column = $matches[3];
+                $refTable = $matches[4];
+                $refColumn = $matches[5];
+                $actions = isset($matches[6]) ? $matches[6] : '';
+                
+                return "ALTER TABLE \"{$tableName}\" ADD CONSTRAINT \"{$constraintName}\" FOREIGN KEY (\"{$column}\") REFERENCES \"{$refTable}\" (\"{$refColumn}\"){$actions};";
+            },
+            $this->content
+        );
         
-        $this->content = preg_replace(
-            '/CONSTRAINT\s+"(\w+)"\s+FOREIGN\s+KEY\s+\("(\w+)"\)\s+REFERENCES\s+"(\w+)"\s+\("(\w+)"\)(\s+ON\s+DELETE\s+\w+)?(\s+ON\s+UPDATE\s+\w+)?/i',
-            'CONSTRAINT "$1" FOREIGN KEY ("$2") REFERENCES "$3" ("$4")$5$6',
+        // معالجة FOREIGN KEY مع أعمدة متعددة
+        $this->content = preg_replace_callback(
+            '/ALTER\s+TABLE\s+"(\w+)"\s+ADD\s+CONSTRAINT\s+"(\w+)"\s+FOREIGN\s+KEY\s+\((.*?)\)\s+REFERENCES\s+"(\w+)"\s+\((.*?)\)((?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|SET\s+NULL|RESTRICT|NO\s+ACTION))*)/is',
+            function($matches) {
+                $tableName = $matches[1];
+                $constraintName = $matches[2];
+                $columns = $matches[3];
+                $refTable = $matches[4];
+                $refColumns = $matches[5];
+                $actions = isset($matches[6]) ? $matches[6] : '';
+                
+                return "ALTER TABLE \"{$tableName}\" ADD CONSTRAINT \"{$constraintName}\" FOREIGN KEY ({$columns}) REFERENCES \"{$refTable}\" ({$refColumns}){$actions};";
+            },
             $this->content
         );
     }
     
+    private function cleanupSyntax()
+    {
+        // إزالة الفواصل المنقوطة الزائدة
+        $this->content = preg_replace('/;{2,}/', ';', $this->content);
+        
+        // إزالة المسافات الزائدة قبل الفاصلة المنقوطة
+        $this->content = preg_replace('/\s+;/', ';', $this->content);
+        
+        // تنظيف الأسطر الفارغة المتعددة
+        $this->content = preg_replace('/\n{3,}/', "\n\n", $this->content);
+    }
+    
     private function addPostgreSQLHeader()
     {
-        $header = "-- ═══════════════════════════════════════════════════════════\n";
+        $header = "-- ═══════════════════════════════════════════════════════════════════════════════════════\n";
         $header .= "-- PostgreSQL Database Export\n";
         $header .= "-- Converted from MySQL dump\n";
         $header .= "-- Conversion Date: " . date('Y-m-d H:i:s') . "\n";
-        $header .= "-- ═══════════════════════════════════════════════════════════\n\n";
+        $header .= "-- ═══════════════════════════════════════════════════════════════════════════════════════\n\n";
         $header .= "-- تعطيل المحفزات والقيود أثناء الاستيراد\n";
         $header .= "SET session_replication_role = 'replica';\n";
         $header .= "SET client_encoding = 'UTF8';\n";
@@ -202,9 +297,9 @@ class AdvancedMySQLToPostgreSQLConverter
         $footer = "\n\n-- إعادة تفعيل المحفزات والقيود\n";
         $footer .= "SET session_replication_role = 'origin';\n\n";
         $footer .= "COMMIT;\n";
-        $footer .= "\n-- ═══════════════════════════════════════════════════════════\n";
-        $footer .= "-- انتهى الاستيراد\n";
-        $footer .= "-- ═══════════════════════════════════════════════════════════\n";
+        $footer .= "\n-- ═══════════════════════════════════════════════════════════════════════════════════════\n";
+        $footer .= "-- اكتمل الاستيراد بنجاح\n";
+        $footer .= "-- ═══════════════════════════════════════════════════════════════════════════════════════\n";
         
         $this->content .= $footer;
     }
@@ -220,7 +315,6 @@ class AdvancedMySQLToPostgreSQLConverter
 // ════════════════════════════════════════════════════════════
 
 if (php_sapi_name() === 'cli') {
-    // قراءة من ملف أو من stdin
     if ($argc > 1) {
         $inputFile = $argv[1];
         $outputFile = $argv[2] ?? str_replace('.sql', '_postgres.sql', $inputFile);
@@ -241,7 +335,8 @@ if (php_sapi_name() === 'cli') {
     
     if (isset($outputFile)) {
         file_put_contents($outputFile, $result);
-        echo "تم حفظ الملف المحول في: {$outputFile}\n";
+        echo "\n✓ تم حفظ الملف المحول في: {$outputFile}\n";
+        echo "✓ يمكنك الآن استيراد الملف إلى PostgreSQL\n";
     } else {
         echo "\n" . str_repeat('═', 60) . "\n";
         echo $result;
