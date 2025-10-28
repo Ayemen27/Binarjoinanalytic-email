@@ -373,7 +373,7 @@ class InstallController extends Controller
             'lastname' => 'Admin',
             'email' => $request->admin_email,
             'password' => Hash::make($request->admin_password),
-            'avatar' => config('lobage.default_avatar'),
+            'avatar' => config('lobage.default_avatar', 'assets/img/default-user.png'),
         ]);
 
         updateEnvFile('INSTALL_SITE_INFO', 1);
