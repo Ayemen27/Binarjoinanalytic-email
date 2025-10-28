@@ -108,7 +108,7 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
     password.forEach((el) => {
       let passwordBtn = el.querySelector("button");
       let passwordInput = el.querySelector("input[type='password']") || el.querySelector("input[type='text']");
-      
+
       if (passwordBtn && passwordInput) {
         passwordBtn.onclick = (e) => {
           e.preventDefault();
@@ -129,13 +129,13 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
   if (stepSidebar) {
     const sidebarToggle = document.querySelector(".sidebar-toggle");
     const sidebarClose = document.querySelector(".sidebar-close");
-    
+
     if (sidebarToggle) {
       sidebarToggle.addEventListener("click", () => {
         stepSidebar.classList.add("show");
       });
     }
-    
+
     if (sidebarClose) {
       sidebarClose.addEventListener("click", () => {
         stepSidebar.classList.remove("show");
