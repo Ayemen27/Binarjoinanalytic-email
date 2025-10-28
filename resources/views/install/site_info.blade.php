@@ -12,7 +12,7 @@
                     </p>
                 </div>
                 <div class="text-start">
-                    <form action="{{ route('install.siteInfo.post') }}" method="POST">
+                    <form action="{{ route('install.siteInfo.post') }}" method="POST" id="siteInfoForm">
                         @csrf
                         <div class="row row-cols-1 g-3">
                             <div class="col">
