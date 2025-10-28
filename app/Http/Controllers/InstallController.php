@@ -348,6 +348,9 @@ class InstallController extends Controller
 
     public function siteInfoPost(Request $request)
     {
+        // زيادة الوقت المسموح للعملية لتجنب timeout مع قواعد البيانات البطيئة
+        set_time_limit(120); // دقيقتان
+        ini_set('max_execution_time', 120);
 
         $request->validate([
             'site_name' => 'required|string|max:255',
@@ -359,15 +362,27 @@ class InstallController extends Controller
 
         //dd($request->admin_path);
 
-        setSetting('site_name', $request->site_name);
-        setSetting('site_url', $request->site_url);
-        setSetting('api_key', Str::random(30));
-        setSetting('cronjob_key', Str::random(30));
+        // حفظ جميع الإعدادات دفعة واحدة لتحسين الأداء
+        $settings = [
+            ['key' => 'site_name', 'value' => $request->site_name],
+            ['key' => 'site_url', 'value' => $request->site_url],
+            ['key' => 'api_key', 'value' => Str::random(30)],
+            ['key' => 'cronjob_key', 'value' => Str::random(30)],
+        ];
+        
+        foreach ($settings as $setting) {
+            \App\Models\Setting::updateOrCreate(
+                ['key' => $setting['key']],
+                ['value' => $setting['value']]
+            );
+        }
+        
+        // تحديث ملف .env
         updateEnvFile('APP_URL', $request->site_url);
         updateEnvFile('APP_NAME', $request->site_name);
         updateEnvFile('ADMIN_PATH', $request->admin_path);
 
-
+        // إنشاء حساب المدير
         $register = Admin::create([
             'firstname' => 'Admin',
             'lastname' => 'Admin',
