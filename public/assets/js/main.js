@@ -73,9 +73,12 @@
         dashboard.classList.toggle("toggle");
       });
     });
-    dashboard.querySelector(".dashboard-sidebar .overlay").addEventListener("click", () => {
-      dashboard.classList.remove("toggle");
-    });
+    const dashboardOverlay = dashboard.querySelector(".dashboard-sidebar .overlay");
+    if (dashboardOverlay) {
+      dashboardOverlay.addEventListener("click", () => {
+        dashboard.classList.remove("toggle");
+      });
+    }
   }
 
   // Upload Image
@@ -124,14 +127,20 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
   // Steps
   const stepSidebar = document.querySelector(".steps-sidebar");
   if (stepSidebar) {
-    const sidebarToggle = document.querySelector(".sidebar-toggle"),
-      sidebarClose = document.querySelector(".sidebar-close");
+    const sidebarToggle = document.querySelector(".sidebar-toggle");
+    const sidebarClose = document.querySelector(".sidebar-close");
+    
+    if (sidebarToggle) {
       sidebarToggle.addEventListener("click", () => {
-      stepSidebar.classList.add("show");
-    });
-    sidebarClose.addEventListener("click", () => {
-      stepSidebar.classList.remove("show");
-    });
+        stepSidebar.classList.add("show");
+      });
+    }
+    
+    if (sidebarClose) {
+      sidebarClose.addEventListener("click", () => {
+        stepSidebar.classList.remove("show");
+      });
+    }
   }
 
   $('.tagsinput input').tagsinput({
