@@ -104,17 +104,17 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
   if (password.length > 0) {
     password.forEach((el) => {
       let passwordBtn = el.querySelector("button");
-      let passwordInput = el.querySelector("input[type='password'], input[type='text']");
+      let passwordInput = el.querySelector("input[type='password']") || el.querySelector("input[type='text']");
       
       if (passwordBtn && passwordInput) {
         passwordBtn.onclick = (e) => {
           e.preventDefault();
           if (passwordInput.type === "password") {
             passwordInput.type = "text";
-            passwordBtn.innerHTML = `<i class="fas fa-eye-slash"></i>`;
+            passwordBtn.querySelector('i').className = "fa fa-eye-slash";
           } else {
             passwordInput.type = "password";
-            passwordBtn.innerHTML = `<i class="fas fa-eye"></i>`;
+            passwordBtn.querySelector('i').className = "fa fa-eye";
           }
         };
       }
