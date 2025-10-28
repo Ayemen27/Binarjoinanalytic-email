@@ -380,30 +380,6 @@ class InstallController extends Controller
             return redirect()->route('install.siteInfo');
         }
 
-        // فحص وجود الجداول
-        $tablesExist = false;
-        $tableCount = 0;
-
-        try {
-            $dbDriver = env('DB_CONNECTION', 'pgsql');
-
-            if ($dbDriver === 'pgsql') {
-                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")[0]->count;
-            } else {
-                $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'")[0]->count;
-            }
-
-            $tablesExist = $tableCount > 0;
-        } catch (Exception $e) {
-            // في حالة فشل الفحص، نستمر بشكل طبيعي
-        }
-
-        // إذا كانت الجداول موجودة والمستخدم لم يختر إعادة الاستيراد، نتخطى
-        if ($tablesExist) {
-            setInstallState('INSTALL_DATABASE_IMPORT', '1');
-            return redirect()->route('install.siteInfo');
-        }
-
         try {
             getSetting('site_name');
         } catch (Exception $e) {
