@@ -440,6 +440,35 @@ class InstallController extends Controller
         set_time_limit(120);
         ini_set('max_execution_time', 120);
 
+        // استعادة بيانات الاتصال بقاعدة البيانات من install_state.json
+        $installState = installState();
+        $dbConnection = $installState->get('DB_CONNECTION', env('DB_CONNECTION', 'pgsql'));
+        $dbHost = $installState->get('DB_HOST');
+        $dbPort = $installState->get('DB_PORT');
+        $dbName = $installState->get('DB_DATABASE');
+        $dbUsername = $installState->get('DB_USERNAME');
+        $dbPassword = $installState->get('DB_PASSWORD');
+
+        // إذا كانت البيانات موجودة في install_state، استخدمها لإعادة الاتصال
+        if ($dbHost && $dbName && $dbUsername) {
+            config([
+                'database.connections.pgsql.host' => $dbHost,
+                'database.connections.pgsql.port' => $dbPort ?: 5432,
+                'database.connections.pgsql.database' => $dbName,
+                'database.connections.pgsql.username' => $dbUsername,
+                'database.connections.pgsql.password' => $dbPassword,
+                'database.connections.mysql.host' => $dbHost,
+                'database.connections.mysql.port' => $dbPort ?: 3306,
+                'database.connections.mysql.database' => $dbName,
+                'database.connections.mysql.username' => $dbUsername,
+                'database.connections.mysql.password' => $dbPassword,
+            ]);
+
+            // إعادة الاتصال بقاعدة البيانات
+            DB::purge($dbConnection);
+            DB::reconnect($dbConnection);
+        }
+
         $existingAdmin = Admin::first();
         
         $validationRules = [
