@@ -11,6 +11,15 @@
                         {{ __('Please enter the details for your site and admin account.') }}
                     </p>
                 </div>
+
+                @if(isset($existingAdmin) && $existingAdmin)
+                    <div class="alert alert-warning mb-4" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Notice:</strong> An admin account already exists from a previous installation ({{ $existingAdmin->email }}). 
+                        Entering a new email and password will update the existing admin credentials.
+                    </div>
+                @endif
+
                 <div class="text-start">
                     <form action="{{ route('install.siteInfo.post') }}" method="POST" id="siteInfoForm">
                         @csrf

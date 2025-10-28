@@ -398,27 +398,38 @@ class InstallController extends Controller
             return redirect()->route('install.complete');
         }
 
-        return view('install.site_info', ['currentStep' => 6]);
+        $existingAdmin = Admin::first();
+
+        return view('install.site_info', [
+            'currentStep' => 6,
+            'existingAdmin' => $existingAdmin
+        ]);
     }
 
 
     public function siteInfoPost(Request $request)
     {
-        // زيادة الوقت المسموح للعملية لتجنب timeout مع قواعد البيانات البطيئة
-        set_time_limit(120); // دقيقتان
+        set_time_limit(120);
         ini_set('max_execution_time', 120);
 
-        $request->validate([
+        $existingAdmin = Admin::first();
+        
+        $validationRules = [
             'site_name' => 'required|string|max:255',
             'site_url' => 'required|url|max:255',
-            'admin_email' => 'required|unique:admins,email',
+            'admin_email' => 'required|email|max:255',
             'admin_password' => 'required|string|min:8',
             'admin_path' => 'required|string|alpha_dash',
-        ]);
+        ];
 
-        //dd($request->admin_path);
+        if ($existingAdmin) {
+            $validationRules['admin_email'] = 'required|email|max:255|unique:admins,email,' . $existingAdmin->id;
+        } else {
+            $validationRules['admin_email'] = 'required|email|max:255|unique:admins,email';
+        }
 
-        // حفظ جميع الإعدادات دفعة واحدة لتحسين الأداء
+        $request->validate($validationRules);
+
         $settings = [
             ['key' => 'site_name', 'value' => $request->site_name],
             ['key' => 'site_url', 'value' => $request->site_url],
@@ -433,19 +444,24 @@ class InstallController extends Controller
             );
         }
         
-        // تحديث ملف .env
         updateEnvFile('APP_URL', $request->site_url);
         updateEnvFile('APP_NAME', $request->site_name);
         updateEnvFile('ADMIN_PATH', $request->admin_path);
 
-        // إنشاء حساب المدير
-        $register = Admin::create([
-            'firstname' => 'Admin',
-            'lastname' => 'Admin',
-            'email' => $request->admin_email,
-            'password' => Hash::make($request->admin_password),
-            'avatar' => config('lobage.default_avatar', 'assets/img/default-user.png'),
-        ]);
+        if ($existingAdmin) {
+            $existingAdmin->update([
+                'email' => $request->admin_email,
+                'password' => Hash::make($request->admin_password),
+            ]);
+        } else {
+            Admin::create([
+                'firstname' => 'Admin',
+                'lastname' => 'Admin',
+                'email' => $request->admin_email,
+                'password' => Hash::make($request->admin_password),
+                'avatar' => config('lobage.default_avatar', 'assets/img/default-user.png'),
+            ]);
+        }
 
         setInstallState('INSTALL_SITE_INFO', '1');
 
