@@ -45,7 +45,7 @@ case $choice in
     1)
         echo ""
         echo -e "${YELLOW}→ اختبار الاتصال بقاعدة بيانات PostgreSQL...${NC}"
-        php database/test_connection.php
+        php database/test_connection_improved.php
         ;;
     
     2)
