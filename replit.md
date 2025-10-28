@@ -132,6 +132,26 @@ Trash Mails is a temporary email address system built with Laravel 11. It provid
   - State Storage: `storage/app/install_state.json`
   - Updated files: `InstallController`, `RedirectIfNotInstalled`, `PreventAccessIfInstalled`, `AppServiceProvider`
 
+### Site Information Installation Step Enhancements (October 2025)
+- **Problem 1 - Pre-existing Admin Account**: Database import creates a default admin account, causing unique constraint violations on re-runs
+  - **Solution**: Modified `siteInfoPost()` to detect existing admin and update credentials instead of creating duplicate
+  - Validation rules adjusted to ignore existing admin email
+  - Clear English warning message displayed when admin already exists
+  - User can update credentials by entering new email/password
+- **Problem 2 - Password Visibility Toggle**: Password show/hide button wasn't working in installation pages
+  - **Solution**: Added `main.js` to `install/layout.blade.php`
+  - Fixed JavaScript null reference errors in `main.js` for installer compatibility
+  - Added null checks for `.dashboard-sidebar .overlay`, `.sidebar-toggle`, and `.sidebar-close` elements
+- **Problem 3 - Replit Domain Compatibility**: Clarified URL format requirements for Replit domains
+  - **Solution**: Added helper text explaining HTTPS requirement
+  - Confirmed Laravel's URL validation accepts Replit domain format (e.g., `https://xxx-xxx.replit.dev`)
+  - Default value uses `url('/')` which automatically includes protocol
+- **Files Modified**:
+  - `app/Http/Controllers/InstallController.php` - Added admin detection and update logic
+  - `resources/views/install/site_info.blade.php` - Added warning message and URL helper text
+  - `resources/views/install/layout.blade.php` - Added main.js script
+  - `public/assets/js/main.js` - Fixed null reference errors for installer compatibility
+
 # External Dependencies
 
 ## Third-Party Services
