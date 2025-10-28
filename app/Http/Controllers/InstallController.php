@@ -199,10 +199,10 @@ class InstallController extends Controller
         try {
             // Get the database driver from environment (default to pgsql)
             $dbDriver = env('DB_CONNECTION', 'pgsql');
-            
+
             // Read port from environment variables (PGPORT for PostgreSQL)
             $dbPort = getenv('PGPORT') ?: ($dbDriver === 'pgsql' ? 5432 : 3306);
-            
+
             // Temporarily set a new database connection
             if ($dbDriver === 'pgsql') {
                 config([
@@ -262,16 +262,16 @@ class InstallController extends Controller
         // فحص وجود الجداول
         $tablesExist = false;
         $tableCount = 0;
-        
+
         try {
             $dbDriver = env('DB_CONNECTION', 'pgsql');
-            
+
             if ($dbDriver === 'pgsql') {
                 $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")[0]->count;
             } else {
                 $tableCount = DB::select("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'")[0]->count;
             }
-            
+
             $tablesExist = $tableCount > 0;
         } catch (Exception $e) {
             // في حالة فشل الفحص، نستمر بشكل طبيعي
@@ -293,7 +293,7 @@ class InstallController extends Controller
 
         $dbType = $request->input('db_type');
         $forceReimport = $request->input('force_reimport', false);
-        
+
         // التحقق من وجود الجداول
         $tablesExist = false;
         try {
@@ -306,13 +306,13 @@ class InstallController extends Controller
         } catch (Exception $e) {
             // متابعة في حالة فشل الفحص
         }
-        
+
         // إذا كانت الجداول موجودة والمستخدم لم يختر إعادة الاستيراد، نتخطى
         if ($tablesExist && !$forceReimport) {
             setInstallState('INSTALL_DATABASE_IMPORT', '1');
             return redirect()->route('install.siteInfo');
         }
-        
+
         // Determine the SQL file based on database type
         $sqlFileName = $dbType === 'pgsql' ? 'data_pgsql.sql' : 'data_mysql.sql';
         $sqlPath = database_path($sqlFileName);
@@ -334,7 +334,7 @@ class InstallController extends Controller
                     DB::statement('SET FOREIGN_KEY_CHECKS = 0');
                     $tables = DB::select('SHOW TABLES');
                     $dbName = env('DB_DATABASE');
-                    
+
                     foreach ($tables as $table) {
                         $tableName = $table->{"Tables_in_$dbName"};
                         DB::statement("DROP TABLE IF EXISTS `$tableName`");
@@ -342,7 +342,7 @@ class InstallController extends Controller
                     DB::statement('SET FOREIGN_KEY_CHECKS = 1');
                 }
             }
-            
+
             DB::unprepared(file_get_contents($sqlPath));
         } catch (Exception $e) {
             return redirect()->back()->withErrors(['skip' => "Unable to Import the database: " . $e->getMessage()]);
@@ -425,14 +425,14 @@ class InstallController extends Controller
             ['key' => 'api_key', 'value' => Str::random(30)],
             ['key' => 'cronjob_key', 'value' => Str::random(30)],
         ];
-        
+
         foreach ($settings as $setting) {
             \App\Models\Setting::updateOrCreate(
                 ['key' => $setting['key']],
                 ['value' => $setting['value']]
             );
         }
-        
+
         // تحديث ملف .env
         updateEnvFile('APP_URL', $request->site_url);
         updateEnvFile('APP_NAME', $request->site_name);

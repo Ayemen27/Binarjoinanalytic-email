@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\InstallController;
 
 
 //Route::prefix('install')->name('installer.')->middleware('installed')->group(function () {
@@ -31,8 +31,8 @@ Route::middleware('prevent-installed-access')->group(function () {
         Route::get('/download', 'InstallController@download')->name('download');
         Route::get('/skip', 'InstallController@skip')->name('skip');
 
-        Route::get('/site-info', 'InstallController@siteInfo')->name('siteInfo');
-        Route::post('/site-info', 'InstallController@siteInfoPost')->name('siteInfo.post');
+        Route::get('/site-info', [InstallController::class, 'siteInfo'])->name('install.site_info');
+        Route::post('/site-info', [InstallController::class, 'storeSiteInfo'])->name('install.site_info.store');
 
         Route::get('/complete', 'InstallController@complete')->name('complete');
     });
