@@ -207,7 +207,9 @@ class InstallController extends Controller
         try {
             // Get the database driver from environment (default to pgsql)
             $dbDriver = env('DB_CONNECTION', 'pgsql');
-            $dbPort = $dbDriver === 'pgsql' ? env('DB_PORT', 5432) : env('DB_PORT', 3306);
+            
+            // Read port from environment variables (PGPORT for PostgreSQL)
+            $dbPort = getenv('PGPORT') ?: ($dbDriver === 'pgsql' ? 5432 : 3306);
             
             // Temporarily set a new database connection
             if ($dbDriver === 'pgsql') {
