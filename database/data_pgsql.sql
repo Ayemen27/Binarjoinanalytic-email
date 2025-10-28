@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════
 -- PostgreSQL Database Export
 -- Converted from MySQL dump
--- Conversion Date: 2025-10-28 02:35:13
+-- Conversion Date: 2025-10-28 02:41:48
 -- ═══════════════════════════════════════════════════════════
 
 -- تعطيل المحفزات والقيود أثناء الاستيراد
@@ -19,8 +19,6 @@ BEGIN;
 -- Generation Time: Feb 25, 2025 at 08:25 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.4
-
-BEGIN;
 
 --
 -- Database: "tempmail"
@@ -1900,8 +1898,6 @@ ALTER TABLE "seo"
 --
 ALTER TABLE "translates"
   ADD CONSTRAINT "translates_lang_foreign" FOREIGN KEY ("lang") REFERENCES "languages" ("code") ON DELETE CASCADE ON UPDATE CASCADE;
-COMMIT;
-
 
 
 -- إعادة تفعيل المحفزات والقيود

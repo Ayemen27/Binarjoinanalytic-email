@@ -54,8 +54,10 @@ class AdvancedMySQLToPostgreSQLConverter
         // إزالة أوامر SET
         $this->content = preg_replace('/SET\s+(SQL_MODE|@OLD_.*?|NAMES|time_zone)\s*=.*?;/i', '', $this->content);
         
-        // تحويل START TRANSACTION إلى BEGIN
-        $this->content = str_replace('START TRANSACTION;', 'BEGIN;', $this->content);
+        // إزالة START TRANSACTION و BEGIN و COMMIT لأننا سنضيف BEGIN/COMMIT واحد في الرأس والتذييل
+        $this->content = str_replace('START TRANSACTION;', '', $this->content);
+        $this->content = preg_replace('/^\s*BEGIN;\s*$/m', '', $this->content);
+        $this->content = preg_replace('/^\s*COMMIT;\s*$/m', '', $this->content);
         
         // إزالة الأسطر الفارغة المتعددة
         $this->content = preg_replace('/\n{3,}/', "\n\n", $this->content);
