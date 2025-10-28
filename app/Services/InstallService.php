@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Http;
 
 class InstallService
 {
@@ -52,44 +53,67 @@ class InstallService
         ];
     }
 
-    public function checkLicense($key, $back_up = false)
+    public function checkLicense($purchaseCode, $debugMode = false)
     {
-        // وضع المحاكاة - للتطوير والاختبار فقط
-        if (env('LICENSE_MOCK_MODE', false) === true || env('LICENSE_MOCK_MODE', false) === 'true') {
-            return $this->getMockLicenseResponse($key);
+        // محاكاة نظام الترخيص - تجاوز التحقق في وضع التطوير
+        if (env('APP_ENV') === 'local' || env('APP_DEBUG') === 'true' || env('APP_DEBUG') === true) {
+            return [
+                'status' => true,
+                'message' => 'وضع التطوير - تم تجاوز التحقق من الترخيص',
+                'data' => [
+                    'purchase_code' => $purchaseCode,
+                    'license_type' => 'development',
+                    'client' => 'development_client',
+                    'verified_at' => now()->toDateTimeString(),
+                    'expires_at' => now()->addYears(10)->toDateTimeString(),
+                    'support_until' => now()->addYears(10)->toDateTimeString()
+                ]
+            ];
         }
 
         try {
-            if (!$back_up) {
-                $client = new Client([
-                    'base_uri' => config('lobage.api')
-                ]);
-            } else {
-                $client = new Client([
-                    'base_uri' => config('lobage.api_v2')
-                ]);
-            }
+            // نقطة نهاية API الفعلية للتحقق من الترخيص
+            $apiUrl = 'https://your-license-server.com/api/verify';
 
-            $response = $client->post('install', [
-                'query' => [
-                    'purchase_code' => $key,
-                    'url' => url('/'),
-                    'id' => config('lobage.id'),
-                ]
+            $response = Http::timeout(10)->post($apiUrl, [
+                'purchase_code' => $purchaseCode,
+                'domain' => request()->getHost(),
             ]);
 
-            $sale = json_decode($response->getBody(), true);
-            return $sale;
-        } catch (RequestException $e) {
-            $sale = false;
+            if ($response->successful()) {
+                $data = $response->json();
 
-            if ($e->hasResponse()) {
-                $sale = json_decode($e->getResponse()->getBody()->getContents(), true);
+                if (isset($data['status']) && $data['status'] === true) {
+                    return [
+                        'status' => true,
+                        'message' => 'تم التحقق من الترخيص بنجاح',
+                        'data' => $data['data'] ?? []
+                    ];
+                }
             }
 
-            return $sale;
+            return [
+                'status' => false,
+                'message' => 'فشل التحقق من الترخيص',
+                'action' => false
+            ];
+        } catch (\Exception $e) {
+            if ($debugMode) {
+                return [
+                    'status' => false,
+                    'message' => 'خطأ: ' . $e->getMessage(),
+                    'action' => false
+                ];
+            }
+
+            return [
+                'status' => false,
+                'message' => 'تعذر التحقق من الترخيص. يرجى التحقق من اتصالك بالإنترنت.',
+                'action' => false
+            ];
         }
     }
+
 
     /**
      * إرجاع استجابة محاكاة للترخيص - للتطوير فقط
