@@ -1,4 +1,4 @@
-modules = ["php-8.3", "nodejs-20"]
+modules = ["php-8.3", "nodejs-20", "postgresql-16"]
 [agent]
 expertMode = true
 
@@ -41,10 +41,6 @@ externalPort = 3001
 [[ports]]
 localPort = 38721
 externalPort = 3000
-
-[[ports]]
-localPort = 45183
-externalPort = 3002
 
 [deployment]
 deploymentTarget = "vm"
