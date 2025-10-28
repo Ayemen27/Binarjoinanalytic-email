@@ -11,7 +11,7 @@
                     </p>
                 </div>
                 <div class="text-start">
-                    <form action="{{ route('install.databaseImport.post') }}" method="POST">
+                    <form action="{{ route('install.databaseImport.post') }}" method="POST" id="importForm">
                         @csrf
                         <div class="row row-cols-1 g-3">
                             <div class="col">
@@ -22,8 +22,38 @@
                                 </select>
                                 <small class="text-muted">{{ __('Select the database type that matches your configuration') }}</small>
                             </div>
-                            <div class="col">
-                                <button class="btn btn-primary btn-md w-100">{{ __('Import Database') }} <i
+                            
+                            <!-- Progress Bar Section -->
+                            <div class="col" id="progressSection" style="display: none;">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="text-center mb-3">
+                                            <div class="spinner-border text-primary mb-2" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <h5 class="mb-1">جاري استيراد قاعدة البيانات</h5>
+                                            <p class="text-muted small mb-0">يرجى الانتظار، قد تستغرق هذه العملية بضع دقائق...</p>
+                                        </div>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" 
+                                                 id="progressBar"
+                                                 style="width: 0%;" 
+                                                 aria-valuenow="0" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                <span class="fw-bold" id="progressText">0%</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <small class="text-muted" id="progressStatus">بدء الاستيراد...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col" id="submitButton">
+                                <button type="submit" class="btn btn-primary btn-md w-100">{{ __('Import Database') }} <i
                                         class="fas fa-arrow-right"></i></button>
                             </div>
                             @error('error')
@@ -72,3 +102,72 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('importForm');
+    const progressSection = document.getElementById('progressSection');
+    const submitButton = document.getElementById('submitButton');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressStatus = document.getElementById('progressStatus');
+    
+    const statusMessages = [
+        'التحقق من الاتصال بقاعدة البيانات...',
+        'قراءة ملف SQL...',
+        'إنشاء الجداول...',
+        'استيراد البيانات...',
+        'إضافة المفاتيح الأساسية...',
+        'إضافة الفهارس...',
+        'تحديث التسلسلات...',
+        'إنهاء الاستيراد...'
+    ];
+    
+    form.addEventListener('submit', function(e) {
+        // إخفاء زر الإرسال وإظهار شريط التقدم
+        submitButton.style.display = 'none';
+        progressSection.style.display = 'block';
+        
+        // عرض الرسالة الأولى مباشرة
+        progressStatus.textContent = statusMessages[0];
+        
+        // محاكاة التقدم
+        let progress = 0;
+        let messageIndex = 0;
+        
+        const interval = setInterval(function() {
+            // زيادة تدريجية صغيرة لضمان عدم تخطي الرسائل (0-5% كحد أقصى)
+            progress += Math.random() * 4 + 1;
+            
+            if (progress > 95) {
+                progress = 95; // توقف عند 95% حتى ينتهي الاستيراد فعلياً
+            }
+            
+            progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            progressText.textContent = Math.round(progress) + '%';
+            
+            // تحديد الرسالة المناسبة بناءً على التقدم
+            let newMessageIndex;
+            if (progress < 84) {
+                newMessageIndex = Math.floor(progress / 12);
+            } else {
+                // عند 84% وما فوق، نعرض الرسالة الأخيرة
+                newMessageIndex = statusMessages.length - 1;
+            }
+            
+            // عرض جميع الرسائل المتخطاة (لضمان عدم تفويت أي رسالة)
+            while (messageIndex < newMessageIndex && messageIndex < statusMessages.length - 1) {
+                messageIndex++;
+                progressStatus.textContent = statusMessages[messageIndex];
+            }
+            
+            if (progress >= 95) {
+                clearInterval(interval);
+            }
+        }, 500);
+    });
+});
+</script>
+@endpush

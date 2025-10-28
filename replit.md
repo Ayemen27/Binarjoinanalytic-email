@@ -4,7 +4,8 @@ Trash Mails is a temporary email address system built with Laravel 11. It provid
 
 # User Preferences
 
-Preferred communication style: Simple, everyday language.
+- **Communication language**: Arabic (العربية)
+- **Communication style**: Simple, everyday language
 
 # System Architecture
 
@@ -68,6 +69,23 @@ Preferred communication style: Simple, everyday language.
 - Includes installation wizard system (public/assets/js/installation_install.js with confetti celebration)
 - Update mechanism with version tracking and migration support (update/2.1/instruction.txt)
 - Documentation hosted externally (docs.lobage.com/trashmails)
+
+### Database Installation System (October 2025)
+- **Dual Database Support**: The system now supports both PostgreSQL and MySQL through dedicated SQL files
+  - `database/data_pgsql.sql` - PostgreSQL-optimized schema and data
+  - `database/data_mysql.sql` - MySQL-compatible schema and data
+- **MySQL to PostgreSQL Converter**: Custom PHP script (`database/mysql_to_postgresql_converter.php`) that:
+  - Converts MySQL data types to PostgreSQL equivalents
+  - Handles AUTO_INCREMENT to SERIAL conversion
+  - Converts string escaping from MySQL (`\'`) to PostgreSQL (`''`) format
+  - Removes MySQL-specific syntax (ENGINE, CHARSET, COLLATE)
+  - Adds proper PostgreSQL transaction handling and settings
+- **Enhanced Installation UI**: Database import page now includes:
+  - Database type selector (PostgreSQL/MySQL dropdown)
+  - Real-time progress bar with percentage display
+  - Animated progress indicator with status messages in Arabic
+  - Automatic database type detection from .env configuration
+  - User-friendly status messages during import process
 
 # External Dependencies
 
