@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 Route::namespace('Frontend')->middleware('maintenance')->group(function () {
-    Auth::routes(['verify' => true]);
+    // Use Auth::routes but disable the ones we'll define manually
+    Auth::routes(['verify' => true, 'login' => false, 'register' => false, 'reset' => false, 'confirm' => false, 'logout' => false]);
 
     // Authentication Routes
     Route::namespace('Auth')->middleware(['mcamara', 'checkBan'])->prefix(LaravelLocalization::setLocale())->group(function () {
@@ -30,10 +31,12 @@ Route::namespace('Frontend')->middleware('maintenance')->group(function () {
             Route::get('register', 'RegisterController@showRegistrationForm')->name('register');
             Route::post('register', 'RegisterController@register')->middleware('trustip');
         });
+        
+        // Logout Route
+        Route::post('logout', 'LoginController@logout')->name('logout');
     });
 
     // Social Authentication Routes
-
     Route::namespace('Auth')->group(function () {
         Route::get('auth/{provider}', 'SocialiteController@redirectToProvider')->name('social.login')->middleware(['demo', 'trustip']);
         Route::get('auth/{provider}/callback', 'SocialiteController@handleProviderCallback')->name('social.callback');
@@ -43,10 +46,5 @@ Route::namespace('Frontend')->middleware('maintenance')->group(function () {
         Route::get('/profile', "ProfileController@index")->name('profile');
         Route::post('/profile/update', "ProfileController@update")->name('profile.update');
         Route::post('/profile/password/update', "ProfileController@changePassword")->name('profile.password.update');
-    });
-
-    // Logout Route
-    Route::namespace('Auth')->group(function () {
-        Route::get('logout', 'LoginController@logout')->name('logout');
     });
 });
