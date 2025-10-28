@@ -22,6 +22,19 @@ echo -e "${YELLOW}📁 Project directory: $PROJECT_DIR${NC}"
 
 # Step 1: Pull latest changes
 echo -e "${GREEN}1. Pulling latest changes from repository...${NC}"
+
+# Fix git ownership issue if running as root
+if [ "$EUID" -eq 0 ]; then
+    # Temporarily restore ownership to current git user for pulling
+    CURRENT_USER=$(stat -c '%U' .git 2>/dev/null || echo "administrator")
+    if [ "$CURRENT_USER" != "root" ]; then
+        chown -R $CURRENT_USER:$CURRENT_USER .git 2>/dev/null || true
+    fi
+    
+    # Add safe directory to avoid dubious ownership error
+    git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true
+fi
+
 git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || echo "Git pull skipped"
 
 # Step 2: Create necessary directories if they don't exist
