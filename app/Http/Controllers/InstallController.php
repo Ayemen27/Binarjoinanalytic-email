@@ -242,11 +242,39 @@ class InstallController extends Controller
             return back()->withErrors(['error' => "Unable to connect to the database: " . $e->getMessage()])->withInput();
         }
 
+        // Store database credentials in .env file
         updateEnvFile('DB_HOST', $dbHost);
         updateEnvFile('DB_DATABASE', $dbName);
         updateEnvFile('DB_USERNAME', $dbUsername);
         updateEnvFile('DB_PASSWORD', $dbPassword);
-
+        
+        // Store database credentials redundantly in install state JSON for persistence across Replit restarts
+        installState()->setMultiple([
+            'DB_CONNECTION' => $dbDriver,
+            'DB_HOST' => $dbHost,
+            'DB_PORT' => (string) $dbPort,
+            'DB_DATABASE' => $dbName,
+            'DB_USERNAME' => $dbUsername,
+            'DB_PASSWORD' => $dbPassword,
+        ]);
+        
+        // Update runtime configuration to use new credentials
+        config([
+            'database.connections.pgsql.host' => $dbHost,
+            'database.connections.pgsql.port' => $dbPort,
+            'database.connections.pgsql.database' => $dbName,
+            'database.connections.pgsql.username' => $dbUsername,
+            'database.connections.pgsql.password' => $dbPassword,
+            'database.connections.mysql.host' => $dbHost,
+            'database.connections.mysql.port' => $dbPort,
+            'database.connections.mysql.database' => $dbName,
+            'database.connections.mysql.username' => $dbUsername,
+            'database.connections.mysql.password' => $dbPassword,
+        ]);
+        
+        // Purge existing connection and reconnect with new credentials
+        DB::purge($dbDriver);
+        DB::reconnect($dbDriver);
 
         setInstallState('INSTALL_DATABASE_INFO', '1');
 
