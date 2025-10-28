@@ -50,6 +50,10 @@ externalPort = 3002
 localPort = 38721
 externalPort = 3000
 
+[[ports]]
+localPort = 38725
+externalPort = 4200
+
 [deployment]
 deploymentTarget = "vm"
 run = ["php", "artisan", "serve", "--host=0.0.0.0", "--port=5000"]

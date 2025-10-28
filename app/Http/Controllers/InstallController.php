@@ -372,6 +372,11 @@ class InstallController extends Controller
             }
             
             DB::unprepared(file_get_contents($sqlPath));
+            
+            // إعادة تعيين sequences في PostgreSQL بعد الاستيراد لتجنب تعارض المفاتيح
+            if ($dbType === 'pgsql') {
+                $this->resetPostgresSequences();
+            }
         } catch (Exception $e) {
             return redirect()->back()->withErrors(['skip' => "Unable to Import the database: " . $e->getMessage()]);
         }
@@ -558,5 +563,55 @@ class InstallController extends Controller
         setInstallState('SYSTEM_INSTALLED', '1');
 
         return view('install.complete', ['currentStep' => 7]);
+    }
+
+    /**
+     * إعادة تعيين جميع sequences في PostgreSQL بعد استيراد البيانات
+     * هذا يحل مشكلة تعارف المفاتيح الأساسية عند إدراج بيانات جديدة
+     */
+    protected function resetPostgresSequences()
+    {
+        try {
+            // الحصول على جميع sequences في قاعدة البيانات
+            $sequences = DB::select("
+                SELECT 
+                    sequence_name,
+                    REPLACE(sequence_name, '_id_seq', '') as table_name
+                FROM information_schema.sequences 
+                WHERE sequence_schema = 'public' 
+                AND sequence_name LIKE '%_id_seq'
+            ");
+
+            foreach ($sequences as $sequence) {
+                $tableName = $sequence->table_name;
+                $sequenceName = $sequence->sequence_name;
+                
+                // التحقق من وجود الجدول
+                $tableExists = DB::select("
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = ?
+                    ) as exists
+                ", [$tableName])[0]->exists;
+                
+                if ($tableExists) {
+                    // الحصول على أقصى ID في الجدول وإعادة تعيين الـ sequence
+                    DB::statement("
+                        SELECT setval(
+                            '{$sequenceName}', 
+                            COALESCE((SELECT MAX(id) FROM \"{$tableName}\"), 1),
+                            true
+                        )
+                    ");
+                }
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            // في حالة فشل إعادة التعيين، نسجل الخطأ ولكن نستمر
+            \Log::warning('فشل إعادة تعيين sequences: ' . $e->getMessage());
+            return false;
+        }
     }
 }

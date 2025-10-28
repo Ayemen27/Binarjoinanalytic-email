@@ -42,6 +42,7 @@ if (!function_exists('setSetting')) {
 if (!function_exists('updateEnvFile')) {
     /**
      * Update a key's value in the .env file.
+     * إذا كان المفتاح متعلقاً بقاعدة البيانات، يتم تحديث install_state.json أيضاً
      */
     function updateEnvFile($key, $value)
     {
@@ -57,7 +58,7 @@ if (!function_exists('updateEnvFile')) {
         $currentEnv = file_get_contents($envPath);
 
         // Prepare the new value (enclosed in double quotes)
-        $value = '"' . trim($value) . '"';
+        $quotedValue = '"' . trim($value) . '"';
 
         // Create a regex pattern to search for the key in the .env file
         $pattern = "/^{$key}=(.*)$/m";
@@ -65,19 +66,27 @@ if (!function_exists('updateEnvFile')) {
         // Check if the key already exists in the .env file
         if (preg_match($pattern, $currentEnv, $matches)) {
             // Key exists, update its value
-            $newEnv = preg_replace($pattern, "{$key}={$value}", $currentEnv);
+            $newEnv = preg_replace($pattern, "{$key}={$quotedValue}", $currentEnv);
         } else {
             // Key doesn't exist, add it to the end of the .env file
             $trimmed = rtrim($currentEnv);
-            $newEnv = empty($trimmed) ? "{$key}={$value}\n" : "{$trimmed}\n{$key}={$value}\n";
+            $newEnv = empty($trimmed) ? "{$key}={$quotedValue}\n" : "{$trimmed}\n{$key}={$quotedValue}\n";
         }
 
         // Write the updated .env file
-        if (file_put_contents($envPath, $newEnv) !== false) {
-            return true;
+        $result = file_put_contents($envPath, $newEnv) !== false;
+        
+        // إذا كان المفتاح متعلقاً بقاعدة البيانات، حفظه في install_state.json أيضاً
+        if ($result && in_array($key, ['DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'])) {
+            try {
+                installState()->set($key, trim($value));
+            } catch (\Exception $e) {
+                // في حالة فشل حفظ install_state، نستمر لأن .env تم تحديثه بنجاح
+                \Log::warning("فشل تحديث {$key} في install_state.json: " . $e->getMessage());
+            }
         }
-
-        return false;
+        
+        return $result;
     }
 }
 
