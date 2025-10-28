@@ -126,21 +126,17 @@ document.querySelectorAll(".upload-image").forEach(imgContainer => {
 
   // Steps
   const stepSidebar = document.querySelector(".steps-sidebar");
-  if (stepSidebar) {
-    const sidebarToggle = document.querySelector(".sidebar-toggle");
-    const sidebarClose = document.querySelector(".sidebar-close");
+  const sidebarToggle = document.querySelector(".sidebar-toggle");
+  const sidebarClose = document.querySelector(".sidebar-close");
+  
+  if (stepSidebar && sidebarToggle && sidebarClose) {
+    sidebarToggle.addEventListener("click", () => {
+      stepSidebar.classList.add("show");
+    });
 
-    if (sidebarToggle) {
-      sidebarToggle.addEventListener("click", () => {
-        stepSidebar.classList.add("show");
-      });
-    }
-
-    if (sidebarClose) {
-      sidebarClose.addEventListener("click", () => {
-        stepSidebar.classList.remove("show");
-      });
-    }
+    sidebarClose.addEventListener("click", () => {
+      stepSidebar.classList.remove("show");
+    });
   }
 
   $('.tagsinput input').tagsinput({
