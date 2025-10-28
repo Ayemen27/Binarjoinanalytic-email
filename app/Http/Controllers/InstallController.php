@@ -205,21 +205,42 @@ class InstallController extends Controller
         $dbPassword = $request->input('db_password');
 
         try {
+            // Get the database driver from environment (default to pgsql)
+            $dbDriver = env('DB_CONNECTION', 'pgsql');
+            $dbPort = $dbDriver === 'pgsql' ? env('DB_PORT', 5432) : env('DB_PORT', 3306);
+            
             // Temporarily set a new database connection
-            config([
-                'database.connections.temp_db' => [
-                    'driver' => 'mysql',
-                    'host' => $dbHost,
-                    'port' => env('DB_PORT', 3306),
-                    'database' => $dbName,
-                    'username' => $dbUsername,
-                    'password' => $dbPassword,
-                    'charset' => 'utf8mb4',
-                    'collation' => 'utf8mb4_unicode_ci',
-                    'strict' => false,
-                    'engine' => null,
-                ],
-            ]);
+            if ($dbDriver === 'pgsql') {
+                config([
+                    'database.connections.temp_db' => [
+                        'driver' => 'pgsql',
+                        'host' => $dbHost,
+                        'port' => $dbPort,
+                        'database' => $dbName,
+                        'username' => $dbUsername,
+                        'password' => $dbPassword,
+                        'charset' => 'utf8',
+                        'prefix' => '',
+                        'schema' => 'public',
+                        'sslmode' => 'prefer',
+                    ],
+                ]);
+            } else {
+                config([
+                    'database.connections.temp_db' => [
+                        'driver' => 'mysql',
+                        'host' => $dbHost,
+                        'port' => $dbPort,
+                        'database' => $dbName,
+                        'username' => $dbUsername,
+                        'password' => $dbPassword,
+                        'charset' => 'utf8mb4',
+                        'collation' => 'utf8mb4_unicode_ci',
+                        'strict' => false,
+                        'engine' => null,
+                    ],
+                ]);
+            }
 
             // Attempt to connect
             DB::connection('temp_db')->getPdo();
