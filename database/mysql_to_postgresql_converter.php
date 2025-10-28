@@ -163,10 +163,12 @@ class AdvancedMySQLToPostgreSQLConverter
     
     private function convertInserts()
     {
-        // في PostgreSQL، نحتاج للتعامل مع القيم الفارغة بشكل مختلف
-        // لكن بشكل عام، INSERT statements متوافقة
+        // في PostgreSQL، القوس المفردة يتم escape بمضاعفتها '' بدلاً من \'
+        // تحويل MySQL escape (\') إلى PostgreSQL escape ('')
+        $this->content = str_replace("\\'", "''", $this->content);
         
-        // فقط نتأكد من عدم وجود backticks (تم معالجتها سابقاً)
+        // تحويل MySQL escape (\") إلى PostgreSQL (لكن " لا يحتاج escape في PostgreSQL strings)
+        $this->content = str_replace('\\"', '"', $this->content);
     }
     
     private function convertForeignKeys()
