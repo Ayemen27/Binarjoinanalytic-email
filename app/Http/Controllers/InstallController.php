@@ -473,6 +473,15 @@ class InstallController extends Controller
             DB::purge($dbConnection);
             DB::reconnect($dbConnection);
         }
+        
+        // إعادة تعيين sequences في PostgreSQL قبل إدراج البيانات لتجنب تعارض المفاتيح
+        if ($dbConnection === 'pgsql') {
+            try {
+                $this->resetPostgresSequences();
+            } catch (Exception $e) {
+                // في حالة فشل إعادة التعيين، نستمر
+            }
+        }
 
         $existingAdmin = Admin::first();
         
