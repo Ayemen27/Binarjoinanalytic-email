@@ -72,6 +72,12 @@
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database\/database.sqlite') || touch('database\/database.sqlite');\"",
             "@php artisan migrate --graceful --ansi"
+        ],
+        "deploy": [
+            "@php artisan optimize:clear",
+            "@php artisan config:cache",
+            "@php artisan route:cache",
+            "@php artisan view:cache"
         ]
     },
     "extra": {

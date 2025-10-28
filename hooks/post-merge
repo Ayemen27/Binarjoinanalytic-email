@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Git Hook: post-merge
+# This hook runs automatically after 'git pull' or 'git merge'
+# It ensures permissions and caches are updated automatically
+
+echo "🔄 Post-merge hook triggered..."
+
+# Get the project root directory
+PROJECT_DIR="$(git rev-parse --show-toplevel)"
+
+# Run the deployment script
+if [ -f "$PROJECT_DIR/deploy.sh" ]; then
+    echo "Running deployment script..."
+    bash "$PROJECT_DIR/deploy.sh"
+else
+    echo "⚠ deploy.sh not found. Creating it..."
+    cd "$PROJECT_DIR"
+    # Basic fallback commands
+    composer install --no-dev --optimize-autoloader
+    php artisan optimize:clear
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+fi
+
+echo "✅ Post-merge hook completed"
