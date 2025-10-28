@@ -272,23 +272,25 @@ class InstallController extends Controller
 
     public function databaseImportPost(Request $request)
     {
+        $request->validate([
+            'db_type' => 'required|in:mysql,pgsql',
+        ]);
 
-        //return redirect()->back()->withErrors(['skip' => "Unable to Import the database"]);
+        $dbType = $request->input('db_type');
+        
+        // Determine the SQL file based on database type
+        $sqlFileName = $dbType === 'pgsql' ? 'data_pgsql.sql' : 'data_mysql.sql';
+        $sqlPath = database_path($sqlFileName);
 
-
-        if (!file_exists(database_path('data.sql'))) {
-            return back()->withErrors(['error' => "SQL file is missing"]);
+        if (!file_exists($sqlPath)) {
+            return back()->withErrors(['error' => "SQL file is missing: {$sqlFileName}"]);
         }
-
 
         try {
-            $sql_path = database_path('data.sql');
-            DB::unprepared(file_get_contents($sql_path));
+            DB::unprepared(file_get_contents($sqlPath));
         } catch (Exception $e) {
-            return redirect()->back()->withErrors(['skip' => "Unable to Import the database" . $e->getMessage()]);
+            return redirect()->back()->withErrors(['skip' => "Unable to Import the database: " . $e->getMessage()]);
         }
-
-
 
         // Update environment variable upon completion
         updateEnvFile('INSTALL_DATABASE_IMPORT', '1');
