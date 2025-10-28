@@ -15,6 +15,14 @@
                         @csrf
                         <div class="row row-cols-1 g-3">
                             <div class="col">
+                                <label for="db_type" class="form-label">{{ __('Database Type') }}</label>
+                                <select name="db_type" id="db_type" class="form-select" required>
+                                    <option value="pgsql" {{ env('DB_CONNECTION') == 'pgsql' ? 'selected' : '' }}>PostgreSQL</option>
+                                    <option value="mysql" {{ env('DB_CONNECTION') == 'mysql' ? 'selected' : '' }}>MySQL</option>
+                                </select>
+                                <small class="text-muted">{{ __('Select the database type that matches your configuration') }}</small>
+                            </div>
+                            <div class="col">
                                 <button class="btn btn-primary btn-md w-100">{{ __('Import Database') }} <i
                                         class="fas fa-arrow-right"></i></button>
                             </div>
