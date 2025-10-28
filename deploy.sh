@@ -24,15 +24,17 @@ echo -e "${YELLOW}📁 Project directory: $PROJECT_DIR${NC}"
 echo -e "${GREEN}1. Pulling latest changes from repository...${NC}"
 git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || echo "Git pull skipped"
 
-# Step 2: Install/Update Composer dependencies
-echo -e "${GREEN}2. Installing Composer dependencies...${NC}"
-if [ "$EUID" -eq 0 ]; then
-    sudo -u $PHP_USER composer install --no-dev --optimize-autoloader --no-interaction
-else
-    composer install --no-dev --optimize-autoloader --no-interaction
-fi
+# Step 2: Create necessary directories if they don't exist
+echo -e "${GREEN}2. Creating necessary directories...${NC}"
+mkdir -p "$PROJECT_DIR/vendor"
+mkdir -p "$PROJECT_DIR/storage/framework/sessions"
+mkdir -p "$PROJECT_DIR/storage/framework/views"
+mkdir -p "$PROJECT_DIR/storage/framework/cache"
+mkdir -p "$PROJECT_DIR/storage/logs"
+mkdir -p "$PROJECT_DIR/bootstrap/cache"
+echo "✓ Directories created"
 
-# Step 3: Set correct ownership
+# Step 3: Set correct ownership FIRST (before composer install)
 echo -e "${GREEN}3. Setting correct file ownership...${NC}"
 if [ "$EUID" -eq 0 ]; then
     chown -R $PHP_USER:$PHP_GROUP "$PROJECT_DIR"
@@ -50,13 +52,22 @@ find "$PROJECT_DIR" -type f -exec chmod 644 {} \;
 # Storage and cache directories need write permissions
 chmod -R 775 "$PROJECT_DIR/storage"
 chmod -R 775 "$PROJECT_DIR/bootstrap/cache"
+chmod -R 775 "$PROJECT_DIR/vendor" 2>/dev/null || true
 # Make deploy.sh executable
 chmod +x "$PROJECT_DIR/deploy.sh"
 
 echo "✓ Permissions set correctly"
 
-# Step 5: Clear and regenerate caches
-echo -e "${GREEN}5. Clearing Laravel caches...${NC}"
+# Step 5: Install/Update Composer dependencies
+echo -e "${GREEN}5. Installing Composer dependencies...${NC}"
+if [ "$EUID" -eq 0 ]; then
+    sudo -u $PHP_USER composer install --no-dev --optimize-autoloader --no-interaction
+else
+    composer install --no-dev --optimize-autoloader --no-interaction
+fi
+
+# Step 6: Clear and regenerate caches
+echo -e "${GREEN}6. Clearing Laravel caches...${NC}"
 if [ "$EUID" -eq 0 ]; then
     sudo -u $PHP_USER php artisan config:clear
     sudo -u $PHP_USER php artisan cache:clear
@@ -71,16 +82,16 @@ else
     php artisan optimize:clear
 fi
 
-# Step 6: Regenerate autoload files
-echo -e "${GREEN}6. Regenerating Composer autoload...${NC}"
+# Step 7: Regenerate autoload files
+echo -e "${GREEN}7. Regenerating Composer autoload...${NC}"
 if [ "$EUID" -eq 0 ]; then
     sudo -u $PHP_USER composer dump-autoload -o
 else
     composer dump-autoload -o
 fi
 
-# Step 7: Optimize Laravel
-echo -e "${GREEN}7. Optimizing Laravel...${NC}"
+# Step 8: Optimize Laravel
+echo -e "${GREEN}8. Optimizing Laravel...${NC}"
 if [ "$EUID" -eq 0 ]; then
     sudo -u $PHP_USER php artisan config:cache
     sudo -u $PHP_USER php artisan route:cache
@@ -91,8 +102,8 @@ else
     php artisan view:cache
 fi
 
-# Step 8: Reload PHP-FPM to clear OPcache
-echo -e "${GREEN}8. Reloading PHP-FPM...${NC}"
+# Step 9: Reload PHP-FPM to clear OPcache
+echo -e "${GREEN}9. Reloading PHP-FPM...${NC}"
 if [ "$EUID" -eq 0 ]; then
     # Try to detect PHP version and reload
     for php_version in 8.3 8.2 8.1 8.0; do
@@ -106,8 +117,8 @@ else
     echo -e "${YELLOW}⚠ Run as root to reload PHP-FPM. Skipping...${NC}"
 fi
 
-# Step 9: Verify autoload
-echo -e "${GREEN}9. Verifying Lobage\Planify\Models\Plan class...${NC}"
+# Step 10: Verify autoload
+echo -e "${GREEN}10. Verifying Lobage\Planify\Models\Plan class...${NC}"
 if [ "$EUID" -eq 0 ]; then
     sudo -u $PHP_USER php -r "require 'vendor/autoload.php'; echo class_exists('Lobage\\Planify\\Models\\Plan') ? '✓ Class loaded successfully' : '✗ Class not found'; echo PHP_EOL;"
 else
