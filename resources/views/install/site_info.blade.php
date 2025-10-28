@@ -28,8 +28,11 @@
                                 <x-input label="{{ __('Site Name') }}" name="site_name" required />
                             </div>
                             <div class="col">
-                                <x-input label="{{ __('Site URL') }}" name="site_url" value="{{ url('/') }}"
-                                    required />
+                                <x-label name="Site URL" />
+                                <x-input name="site_url" value="{{ url('/') }}" placeholder="https://example.com" required />
+                                <small class="form-text text-muted">
+                                    Enter the full URL of your site including https:// (e.g., https://your-domain.com)
+                                </small>
                             </div>
                             <div class="col">
                                 <x-label name="Admin Path" for="slug" />
