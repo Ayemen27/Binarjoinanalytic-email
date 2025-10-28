@@ -55,20 +55,10 @@ class InstallService
 
     public function checkLicense($purchaseCode, $debugMode = false)
     {
-        // محاكاة نظام الترخيص - تجاوز التحقق في وضع التطوير
-        if (env('APP_ENV') === 'local' || env('APP_DEBUG') === 'true' || env('APP_DEBUG') === true) {
-            return [
-                'status' => true,
-                'message' => 'وضع التطوير - تم تجاوز التحقق من الترخيص',
-                'data' => [
-                    'purchase_code' => $purchaseCode,
-                    'license_type' => 'development',
-                    'client' => 'development_client',
-                    'verified_at' => now()->toDateTimeString(),
-                    'expires_at' => now()->addYears(10)->toDateTimeString(),
-                    'support_until' => now()->addYears(10)->toDateTimeString()
-                ]
-            ];
+        // التحقق من وضع المحاكاة أولاً
+        $mockMode = env('LICENSE_MOCK_MODE', false);
+        if ($mockMode === true || $mockMode === 'true' || $mockMode === '1') {
+            return $this->getMockLicenseResponse($purchaseCode);
         }
 
         try {
@@ -129,7 +119,7 @@ class InstallService
             ];
         }
 
-        // استجابة محاكاة ناجحة
+        // استجابة محاكاة ناجحة مع تنسيق البيانات المتوافق مع license.json
         return [
             'status' => true,
             'message' => 'تم التحقق من الترخيص بنجاح (وضع المحاكاة)',
@@ -140,8 +130,11 @@ class InstallService
                 'buyer' => 'Mock Development User',
                 'purchase_code' => $key,
                 'license' => 'Regular License (Mock)',
+                'support' => now()->addYears(10)->format('Y-m-d H:i:s'),
                 'supported_until' => now()->addYears(10)->format('Y-m-d H:i:s'),
                 'purchase_count' => 1,
+                'verified_at' => now()->format('Y-m-d H:i:s'),
+                'domain' => request()->getHost(),
             ],
         ];
     }

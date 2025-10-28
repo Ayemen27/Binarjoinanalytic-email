@@ -87,6 +87,28 @@ Trash Mails is a temporary email address system built with Laravel 11. It provid
   - Automatic database type detection from .env configuration
   - User-friendly status messages during import process
 
+### License Verification System (October 2025)
+- **Mock Mode Support**: The system includes a license mock mode for development and testing
+  - Set `LICENSE_MOCK_MODE=true` in `.env` to enable mock verification
+  - When enabled, any purchase code will be accepted without internet connection
+  - Mock mode works in both installer and admin settings
+  - License data is stored in `public/license.json` file
+- **Implementation Details**:
+  - `InstallService::checkLicense()` - Handles license verification with mock support
+  - `InstallService::getMockLicenseResponse()` - Generates mock license data
+  - Mock data includes: buyer info, purchase code, support dates, verified_at, domain info
+  - Both `InstallController` and `Admin\Settings\LicenseController` use consistent file path
+  - When mock mode is disabled, system connects to remote API for verification
+- **Usage**:
+  - Development/Testing: Set `LICENSE_MOCK_MODE=true` in `.env`
+  - Production: Set `LICENSE_MOCK_MODE=false` and configure real license server URL
+  - The mock mode indicator is displayed on the license page when enabled
+- **File Locations**:
+  - Service: `app/Services/InstallService.php`
+  - Installer: `app/Http/Controllers/InstallController.php`
+  - Admin Panel: `app/Http/Controllers/Admin/Settings/LicenseController.php`
+  - License Storage: `public/license.json`
+
 # External Dependencies
 
 ## Third-Party Services

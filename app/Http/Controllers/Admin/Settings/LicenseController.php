@@ -52,22 +52,26 @@ class LicenseController extends Controller
             'purchase_code' => 'required|string',
         ]);
 
-        // Process the license key
-        $data = $this->installService->checkLicense($request->input('purchase_code'));
+        try {
+            // Process the license key
+            $data = $this->installService->checkLicense($request->input('purchase_code'));
 
-        if (!$data['status'] || $data === null) {
-            return back()
-                ->withErrors(['message' => $data['message']])
-                ->with('action', $data['action'] ?? false);
+            if (!isset($data['status']) || !$data['status'] || $data === null) {
+                return back()
+                    ->withErrors(['message' => $data['message'] ?? 'حدث خطأ أثناء التحقق من الترخيص'])
+                    ->with('action', $data['action'] ?? false);
+            }
+
+            $jsonData = json_encode($data['data'], JSON_PRETTY_PRINT);
+
+            // Define the file name with extension - stored in public folder
+            $filename = public_path('license.json');
+
+            File::put($filename, $jsonData);
+
+            return back()->with('success', 'تم تحديث الترخيص بنجاح');
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'حدث خطأ: ' . $e->getMessage()]);
         }
-
-        $jsonData = json_encode($data['data'], JSON_PRETTY_PRINT);
-
-        // Define the file name with extension
-        $filename = 'license.json';
-
-        File::put($filename, $jsonData);
-
-        return back();
     }
 }

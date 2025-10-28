@@ -133,28 +133,20 @@ class InstallController extends Controller
             'purchase_code' => 'required|string',
         ]);
 
-
         try {
             // Process the license key
             $data = $this->installService->checkLicense($request->input('purchase_code'));
 
-            dump($data);
-
-            if ($data === null) {
-                $data = $this->installService->checkLicense($request->input('purchase_code'), true);
-            }
-            dump($data);
-
-            if (!$data['status'] || $data === null) {
+            if (!isset($data['status']) || !$data['status'] || $data === null) {
                 return back()
-                    ->withErrors(['message' => $data['message']])
+                    ->withErrors(['message' => $data['message'] ?? 'حدث خطأ أثناء التحقق من الترخيص'])
                     ->with('action', $data['action'] ?? false);
             }
 
             $jsonData = json_encode($data['data'], JSON_PRETTY_PRINT);
 
-            // Define the file name with extension
-            $filename = 'license.json';
+            // Define the file name with extension - stored in public folder
+            $filename = public_path('license.json');
 
             File::put($filename, $jsonData);
 
