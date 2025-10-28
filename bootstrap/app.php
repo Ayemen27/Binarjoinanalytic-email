@@ -6,6 +6,66 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
+// ========================================
+// REPLIT DATABASE CONNECTION LOADER
+// ========================================
+// This section ensures database credentials persist across Replit restarts
+// by loading them from install_state.json when the system is installed
+
+$installStatePath = __DIR__ . '/../storage/app/install_state.json';
+
+if (file_exists($installStatePath)) {
+    try {
+        $installStateContent = file_get_contents($installStatePath);
+        $installState = json_decode($installStateContent, true);
+        
+        // Check if JSON is valid and system is installed
+        if (json_last_error() === JSON_ERROR_NONE && 
+            isset($installState['SYSTEM_INSTALLED']) && 
+            $installState['SYSTEM_INSTALLED'] === '1') {
+            
+            // Verify all required database keys exist
+            $requiredKeys = ['DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'];
+            $allKeysPresent = true;
+            
+            foreach ($requiredKeys as $key) {
+                if (!isset($installState[$key])) {
+                    $allKeysPresent = false;
+                    error_log("Missing database key in install_state.json: {$key}");
+                    break;
+                }
+            }
+            
+            // If all keys are present, inject them into environment
+            if ($allKeysPresent) {
+                $_ENV['DB_CONNECTION'] = $installState['DB_CONNECTION'];
+                $_ENV['DB_HOST'] = $installState['DB_HOST'];
+                $_ENV['DB_PORT'] = $installState['DB_PORT'];
+                $_ENV['DB_DATABASE'] = $installState['DB_DATABASE'];
+                $_ENV['DB_USERNAME'] = $installState['DB_USERNAME'];
+                $_ENV['DB_PASSWORD'] = $installState['DB_PASSWORD'];
+                
+                putenv("DB_CONNECTION={$installState['DB_CONNECTION']}");
+                putenv("DB_HOST={$installState['DB_HOST']}");
+                putenv("DB_PORT={$installState['DB_PORT']}");
+                putenv("DB_DATABASE={$installState['DB_DATABASE']}");
+                putenv("DB_USERNAME={$installState['DB_USERNAME']}");
+                putenv("DB_PASSWORD={$installState['DB_PASSWORD']}");
+                
+                error_log("✓ Database credentials loaded from install_state.json");
+            } else {
+                error_log("⚠ Some database keys missing in install_state.json, falling back to .env");
+            }
+        }
+    } catch (\Exception $e) {
+        // Log error but don't crash - fallback to .env values
+        error_log("⚠ Error reading install_state.json: " . $e->getMessage());
+        error_log("Falling back to .env database configuration");
+    }
+}
+
+// ========================================
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         //web: __DIR__ . '/../routes/web.php',

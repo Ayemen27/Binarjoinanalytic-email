@@ -5,6 +5,20 @@ use Illuminate\Support\Facades\Route;
 
 require __DIR__ . '/install.php';
 
+// Simple test route (no middleware, no database)
+Route::get('/test-route', function() {
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Laravel is working!',
+        'time' => date('Y-m-d H:i:s'),
+        'db_config_loaded' => env('DB_HOST') !== null
+    ]);
+});
+
+// System Diagnostics Routes (accessible at all times)
+Route::get('/system-diagnostics', 'SystemDiagnosticsController@index')->name('system.diagnostics');
+Route::post('/system-diagnostics/test', 'SystemDiagnosticsController@testConnection')->name('system.diagnostics.test');
+
 Route::middleware('not-installed')->group(function () {
     // Include admin and authentication routes
     require __DIR__ . '/admin.php';

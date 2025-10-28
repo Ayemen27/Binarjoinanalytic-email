@@ -377,6 +377,10 @@ class InstallController extends Controller
             if ($dbType === 'pgsql') {
                 $this->resetPostgresSequences();
             }
+            
+            // التحقق من وجود الجداول المهمة وإنشائها إذا كانت مفقودة
+            $this->ensureCriticalTablesExist($dbType);
+            
         } catch (Exception $e) {
             return redirect()->back()->withErrors(['skip' => "Unable to Import the database: " . $e->getMessage()]);
         }
@@ -572,6 +576,86 @@ class InstallController extends Controller
         setInstallState('SYSTEM_INSTALLED', '1');
 
         return view('install.complete', ['currentStep' => 7]);
+    }
+
+    /**
+     * التحقق من وجود الجداول المهمة وإنشائها إذا كانت مفقودة
+     * هذا يحل مشكلة عدم اكتمال استيراد SQL
+     */
+    protected function ensureCriticalTablesExist($dbType = 'pgsql')
+    {
+        $criticalTables = [
+            'sessions' => [
+                'pgsql' => "CREATE TABLE IF NOT EXISTS \"sessions\" (
+                    \"id\" VARCHAR(255) NOT NULL PRIMARY KEY,
+                    \"user_id\" BIGINT DEFAULT NULL,
+                    \"ip_address\" VARCHAR(45) DEFAULT NULL,
+                    \"user_agent\" TEXT,
+                    \"payload\" TEXT NOT NULL,
+                    \"last_activity\" INTEGER NOT NULL
+                )",
+                'mysql' => "CREATE TABLE IF NOT EXISTS `sessions` (
+                    `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+                    `user_id` BIGINT DEFAULT NULL,
+                    `ip_address` VARCHAR(45) DEFAULT NULL,
+                    `user_agent` TEXT,
+                    `payload` TEXT NOT NULL,
+                    `last_activity` INT NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+            ],
+            'cache' => [
+                'pgsql' => "CREATE TABLE IF NOT EXISTS \"cache\" (
+                    \"key\" VARCHAR(255) NOT NULL PRIMARY KEY,
+                    \"value\" TEXT NOT NULL,
+                    \"expiration\" INTEGER NOT NULL
+                )",
+                'mysql' => "CREATE TABLE IF NOT EXISTS `cache` (
+                    `key` VARCHAR(255) NOT NULL PRIMARY KEY,
+                    `value` TEXT NOT NULL,
+                    `expiration` INT NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+            ]
+        ];
+        
+        try {
+            foreach ($criticalTables as $tableName => $createStatements) {
+                // التحقق من وجود الجدول
+                $exists = false;
+                
+                try {
+                    if ($dbType === 'pgsql') {
+                        $result = DB::select("SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_schema = 'public' 
+                            AND table_name = ?
+                        ) as exists", [$tableName]);
+                        $exists = $result[0]->exists ?? false;
+                    } else {
+                        $result = DB::select("SELECT COUNT(*) as count FROM information_schema.tables 
+                            WHERE table_schema = DATABASE() 
+                            AND table_name = ?", [$tableName]);
+                        $exists = ($result[0]->count ?? 0) > 0;
+                    }
+                } catch (Exception $e) {
+                    $exists = false;
+                }
+                
+                // إنشاء الجدول إذا كان مفقوداً
+                if (!$exists && isset($createStatements[$dbType])) {
+                    try {
+                        DB::statement($createStatements[$dbType]);
+                        \Log::info("تم إنشاء الجدول المفقود: {$tableName}");
+                    } catch (Exception $e) {
+                        \Log::warning("فشل إنشاء الجدول {$tableName}: " . $e->getMessage());
+                    }
+                }
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            \Log::warning('فشل التحقق من الجداول المهمة: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
