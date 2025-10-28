@@ -305,7 +305,16 @@ class InstallController extends Controller
             return redirect()->route('install.siteInfo');
         }
 
-        return response()->download(database_path('data.sql'));
+        // Get database type from environment
+        $dbType = env('DB_CONNECTION', 'pgsql');
+        $sqlFileName = $dbType === 'pgsql' ? 'data_pgsql.sql' : 'data_mysql.sql';
+        $sqlPath = database_path($sqlFileName);
+
+        if (!file_exists($sqlPath)) {
+            return back()->withErrors(['error' => "SQL file is missing: {$sqlFileName}"]);
+        }
+
+        return response()->download($sqlPath);
     }
 
 
