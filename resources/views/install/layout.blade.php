@@ -11,10 +11,10 @@
         @yield('title') {{ config('seotools.meta.defaults.separator') }} {{ config('lobage.script_name') }}
     </title>
     <link rel="icon" type="image/png" href="{{ asset('assets/img/favicon.ico') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/vendor/fontawesome.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/vendor/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/vendor/bootstrap-tagsinput.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/install.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/vendor/fontawesome.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/css/vendor/bootstrap.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/css/vendor/bootstrap-tagsinput.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/css/install.css?v=' . env('SITE_VERSION')) }}" />
 
 
 </head>
